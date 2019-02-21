@@ -88,7 +88,7 @@ func (s *heavySuite) BeforeTest(suiteName, testName string) {
 	s.nodeStorage = storage.NewNodeStorage()
 	s.pulseTracker = storage.NewPulseTracker()
 	s.replicaStorage = storage.NewReplicaStorage()
-	s.objectStorage = storage.NewObjectStorage()
+	s.objectStorage = storage.NewObjectStorageDB()
 	s.dropStorage = storage.NewDropStorage(10)
 	s.storageCleaner = storage.NewCleaner()
 

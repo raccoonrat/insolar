@@ -77,7 +77,7 @@ func TmpDB(ctx context.Context, t testing.TB, options ...Option) (storage.DBCont
 		platformpolicy.NewPlatformCryptographyScheme(),
 		db,
 		storage.NewJetStorage(),
-		storage.NewObjectStorage(),
+		storage.NewObjectStorageDB(),
 		storage.NewDropStorage(10),
 		storage.NewPulseTracker(),
 	)

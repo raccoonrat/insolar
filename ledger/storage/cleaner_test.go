@@ -64,7 +64,7 @@ func (s *cleanerSuite) BeforeTest(suiteName, testName string) {
 	db, cleaner := storagetest.TmpDB(s.ctx, s.T())
 	s.cleaner = cleaner
 
-	s.objectStorage = storage.NewObjectStorage()
+	s.objectStorage = storage.NewObjectStorageDB()
 	s.dropStorage = storage.NewDropStorage(0)
 	s.storageCleaner = storage.NewCleaner()
 

@@ -73,7 +73,7 @@ func (s *exporterSuite) BeforeTest(suiteName, testName string) {
 	db, cleaner := storagetest.TmpDB(s.ctx, s.T())
 	s.cleaner = cleaner
 	s.pulseTracker = storage.NewPulseTracker()
-	s.objectStorage = storage.NewObjectStorage()
+	s.objectStorage = storage.NewObjectStorageDB()
 	s.jetStorage = storage.NewJetStorage()
 	s.pulseStorage = storage.NewPulseStorage()
 	s.exporter = NewExporter(configuration.Exporter{ExportLag: 0})

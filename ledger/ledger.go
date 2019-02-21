@@ -85,13 +85,18 @@ func GetLedgerComponents(conf configuration.Ledger, certificate core.Certificate
 		panic(errors.Wrap(err, "failed to initialize DB"))
 	}
 
-	var pulseTracker storage.PulseTracker
+	var (
+		pulseTracker  storage.PulseTracker
+		objectStorage storage.ObjectStorage
+	)
 	// TODO: @imarkin 18.02.18 - Comparision with core.StaticRoleUnknown is a hack for genesis pulse (INS-1537)
 	switch certificate.GetRole() {
 	case core.StaticRoleUnknown, core.StaticRoleHeavyMaterial:
 		pulseTracker = storage.NewPulseTracker()
+		objectStorage = storage.NewObjectStorageDB()
 	default:
 		pulseTracker = storage.NewPulseTrackerMemory()
+		objectStorage = storage.NewObjectStorageMem()
 	}
 
 	return []interface{}{
@@ -102,7 +107,7 @@ func GetLedgerComponents(conf configuration.Ledger, certificate core.Certificate
 		storage.NewJetStorage(),
 		storage.NewDropStorage(conf.JetSizesHistoryDepth),
 		storage.NewNodeStorage(),
-		storage.NewObjectStorage(),
+		objectStorage,
 		storage.NewReplicaStorage(),
 		storage.NewGenesisInitializer(),
 		recentstorage.NewRecentStorageProvider(conf.RecentStorage.DefaultTTL),

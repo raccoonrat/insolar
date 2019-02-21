@@ -66,7 +66,7 @@ func (s *txnSuite) BeforeTest(suiteName, testName string) {
 
 	s.db = db
 	s.cleaner = cleaner
-	s.objectStorage = storage.NewObjectStorage()
+	s.objectStorage = storage.NewObjectStorageDB()
 
 	s.cm.Inject(
 		platformpolicy.NewPlatformCryptographyScheme(),

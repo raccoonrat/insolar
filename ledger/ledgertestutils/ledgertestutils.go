@@ -60,7 +60,7 @@ func TmpLedger(t *testing.T, dir string, handlersRole core.StaticRole, c core.Co
 	pt := storage.NewPulseTracker()
 	ps := storage.NewPulseStorage()
 	js := storage.NewJetStorage()
-	os := storage.NewObjectStorage()
+	os := storage.NewObjectStorageDB()
 	ns := storage.NewNodeStorage()
 	ds := storage.NewDropStorage(10)
 	rs := storage.NewReplicaStorage()

@@ -66,7 +66,7 @@ func (s *pulseManagerSuite) BeforeTest(suiteName, testName string) {
 
 	db, cleaner := storagetest.TmpDB(s.ctx, s.T())
 	s.cleaner = cleaner
-	s.objectStorage = storage.NewObjectStorage()
+	s.objectStorage = storage.NewObjectStorageDB()
 
 	s.cm.Inject(
 		platformpolicy.NewPlatformCryptographyScheme(),
