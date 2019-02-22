@@ -182,20 +182,6 @@ func (s *storageSuite) TestDB_CreateDrop() {
 			Entropy:     core.Entropy{1, 2, 3},
 		},
 	)
-	cs := platformpolicy.NewPlatformCryptographyScheme()
-
-	msgCount := 3
-	for i := 1; i < 1+msgCount; i++ {
-		setRecordMessage := message.SetRecord{
-			Record: record.SerializeRecord(&record.CodeRecord{
-				Code: record.CalculateIDForBlob(cs, pulse, []byte{byte(i)}),
-			}),
-		}
-		err = s.objectStorage.SetMessage(s.ctx, jetID, pulse, &setRecordMessage)
-		require.NoError(s.T(), err)
-		_, err = s.objectStorage.SetBlob(s.ctx, jetID, pulse, []byte{byte(i)})
-		require.NoError(s.T(), err)
-	}
 
 	drop, messages, dropSize, err := s.dropStorage.CreateDrop(s.ctx, jetID, pulse, []byte{4, 5, 6})
 	require.NoError(s.T(), err)

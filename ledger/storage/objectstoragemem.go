@@ -18,6 +18,7 @@ package storage
 
 import (
 	"context"
+	"sync"
 
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/ledger/storage/index"
@@ -25,7 +26,64 @@ import (
 )
 
 type objectStorageMEM struct {
-	// TODO implement this
+	recordStorage recordsPerJet
+	blobStorage   blobsPerJet
+	indexStorage  indicesPerJet
+}
+
+// simple aliases for keys in compound map
+type jetID *core.RecordID
+type objectID *core.RecordID
+type pulseNumber *core.PulseNumber
+
+// values for records in storage
+type recordValue record.Record
+type blobValue []byte
+type indexValue index.ObjectLifeline
+
+type recordMemory struct {
+	rwLock sync.RWMutex
+	mem    map[objectID]recordValue
+}
+
+type blobMemory struct {
+	rwLock sync.RWMutex
+	mem    map[objectID]blobValue
+}
+
+type indexMemory struct {
+	rwLock sync.RWMutex
+	mem    map[objectID]indexValue
+}
+
+type recordsPerPulse struct {
+	rwLock sync.RWMutex
+	mem    map[pulseNumber]recordMemory
+}
+
+type blobsPerPulse struct {
+	rwLock sync.RWMutex
+	mem    map[pulseNumber]blobMemory
+}
+
+type indicesPerPulse struct {
+	rwLock sync.RWMutex
+	mem    map[pulseNumber]indexMemory
+}
+
+type recordsPerJet struct {
+	rwLock sync.RWMutex
+	mem    map[jetID]recordsPerPulse
+}
+
+type blobsPerJet struct {
+	rwLock sync.RWMutex
+	mem    map[jetID]blobsPerPulse
+}
+
+type indicesPerJet struct {
+	rwLock sync.RWMutex
+	mem    map[jetID]indicesPerPulse
 }
 
 func NewObjectStorageMem() ObjectStorage {
