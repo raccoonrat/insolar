@@ -36,11 +36,12 @@ type jetID *core.RecordID
 type objectID *core.RecordID
 type pulseNumber *core.PulseNumber
 
-// values for records in storage
+// aliases for records in storage
 type recordValue record.Record
 type blobValue []byte
 type indexValue index.ObjectLifeline
 
+// structures for inner memory map
 type recordMemory struct {
 	rwLock sync.RWMutex
 	mem    map[objectID]recordValue
@@ -56,6 +57,7 @@ type indexMemory struct {
 	mem    map[objectID]indexValue
 }
 
+// structures for memory maps per pulses
 type recordsPerPulse struct {
 	rwLock sync.RWMutex
 	mem    map[pulseNumber]recordMemory
@@ -71,6 +73,7 @@ type indicesPerPulse struct {
 	mem    map[pulseNumber]indexMemory
 }
 
+// structures for memory maps with pulses per jet
 type recordsPerJet struct {
 	rwLock sync.RWMutex
 	mem    map[jetID]recordsPerPulse
