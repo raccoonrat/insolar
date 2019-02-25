@@ -174,7 +174,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 func (n *ServiceNetwork) Start(ctx context.Context) error {
 	logger := inslogger.FromContext(ctx)
 
-	logger.Infoln("Network starts listening...")
+	logger.Info("Network starts listening...")
 	n.routingTable.Inject(n.NodeKeeper)
 	n.hostNetwork.Start(ctx)
 
@@ -184,7 +184,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to bootstrap network")
 	}
 
-	log.Infoln("Bootstrapping network...")
+	log.Info("Bootstrapping network...")
 	_, err = n.Controller.Bootstrap(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Failed to bootstrap network")
@@ -241,6 +241,13 @@ func (n *ServiceNetwork) HandlePulse(ctx context.Context, newPulse core.Pulse) {
 		return
 	}
 
+	setPulse := true
+	if n.NodeKeeper.GetState() == core.WaitingNodeNetworkState {
+		// do not set pulse because otherwise we will set invalid active list
+		// pass consensus, prepare valid active list and set it on next pulse
+		setPulse = false
+	}
+
 	// Ignore core.ErrNotFound because
 	// sometimes we can't fetch current pulse in new nodes
 	// (for fresh bootstrapped light-material with in-memory pulse-tracker)
@@ -260,12 +267,20 @@ func (n *ServiceNetwork) HandlePulse(ctx context.Context, newPulse core.Pulse) {
 		logger.Error(errors.Wrap(err, "Failed to call OnPulse on NetworkSwitcher"))
 	}
 
-	logger.Debugf("Before set new current pulse number: %d", newPulse.PulseNumber)
-	err = n.PulseManager.Set(ctx, newPulse, n.NetworkSwitcher.GetState() == core.CompleteNetworkState)
-	if err != nil {
-		logger.Fatalf("Failed to set new pulse: %s", err.Error())
+	if setPulse {
+		logger.Debugf("Before set new current pulse number: %d", newPulse.PulseNumber)
+		err := n.PulseManager.Set(ctx, newPulse, n.NetworkSwitcher.GetState() == core.CompleteNetworkState)
+		if err != nil {
+			logger.Fatalf("Failed to set new pulse: %s", err.Error())
+		}
+		logger.Infof("Set new current pulse number: %d", newPulse.PulseNumber)
+
+		// Try to change state second time when we already changed pulse and sync nodes moved to active list.
+		err = n.NetworkSwitcher.OnPulse(ctx, newPulse)
+		if err != nil {
+			logger.Error(errors.Wrap(err, "Failed to call OnPulse on NetworkSwitcher"))
+		}
 	}
-	logger.Infof("Set new current pulse number: %d", newPulse.PulseNumber)
 
 	go n.phaseManagerOnPulse(ctx, newPulse, currentTime)
 }
@@ -275,7 +290,7 @@ func (n *ServiceNetwork) phaseManagerOnPulse(ctx context.Context, newPulse core.
 
 	if err := n.PhaseManager.OnPulse(ctx, &newPulse, pulseStartTime); err != nil {
 		logger.Error("Failed to pass consensus: " + err.Error())
-		n.TerminationHandler.Abort()
+		n.TerminationHandler.Abort("Failed to pass consensus")
 	}
 }
 

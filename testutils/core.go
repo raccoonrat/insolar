@@ -18,13 +18,14 @@ package testutils
 
 import (
 	"crypto"
+	"crypto/rand"
 	"fmt"
 	"hash"
-	"math/rand"
 
 	"github.com/insolar/insolar/core"
+	"github.com/insolar/insolar/core/utils"
 	"github.com/insolar/insolar/ledger/storage/jet"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -59,8 +60,8 @@ func RandomID() core.RecordID {
 
 // RandomJet generates random jet with random depth.
 func RandomJet() core.RecordID {
-	// don't be too huge (i.e. 255)
-	depth := uint8(rand.Intn(128))
+	n := utils.RandomInt(128)
+	depth := uint8(n)
 	return RandomJetWithDepth(depth)
 }
 
