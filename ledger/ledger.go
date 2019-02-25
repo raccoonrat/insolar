@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/insolar/insolar/ledger/recentstorage"
+	"github.com/insolar/insolar/ledger/storage/nodes"
 	"github.com/pkg/errors"
 
 	"github.com/insolar/insolar/configuration"
@@ -106,7 +107,7 @@ func GetLedgerComponents(conf configuration.Ledger, certificate core.Certificate
 		storage.NewPulseStorage(),
 		storage.NewJetStorage(),
 		storage.NewDropStorage(conf.JetSizesHistoryDepth),
-		storage.NewNodeStorage(),
+		nodes.NewStorage(),
 		objectStorage,
 		storage.NewReplicaStorage(),
 		storage.NewGenesisInitializer(),
