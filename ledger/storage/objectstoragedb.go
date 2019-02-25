@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/insolar/insolar/core"
-	"github.com/insolar/insolar/core/message"
 	"github.com/insolar/insolar/ledger/storage/index"
 	"github.com/insolar/insolar/ledger/storage/jet"
 	"github.com/insolar/insolar/ledger/storage/record"
@@ -100,24 +99,6 @@ func (os *objectStorageDB) SetRecord(ctx context.Context, jetID core.RecordID, p
 		return nil, err
 	}
 	return id, nil
-}
-
-// SetMessage persists message to the database
-func (os *objectStorageDB) SetMessage(ctx context.Context, jetID core.RecordID, pulseNumber core.PulseNumber, genericMessage core.Message) error {
-	_, prefix := jet.Jet(jetID)
-	messageBytes := message.ToBytes(genericMessage)
-	hw := os.PlatformCryptographyScheme.ReferenceHasher()
-	_, err := hw.Write(messageBytes)
-	if err != nil {
-		return err
-	}
-	hw.Sum(nil)
-
-	return os.DB.set(
-		ctx,
-		prefixkey(scopeIDMessage, prefix, pulseNumber.Bytes(), hw.Sum(nil)),
-		messageBytes,
-	)
 }
 
 // IterateIndexIDs iterates over index IDs on provided Jet ID.
