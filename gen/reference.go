@@ -1,5 +1,5 @@
 /*
- *    Copyright 2019 Insolar Technologies
+ *    Copyright 2019 Insolar
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,25 +14,21 @@
  *    limitations under the License.
  */
 
-package core
+package gen
 
 import (
-	"fmt"
+	"github.com/google/gofuzz"
+	"github.com/insolar/insolar/core"
 )
 
-// TerminationHandler handles such node events as graceful stop, abort, etc.
-//go:generate minimock -i github.com/insolar/insolar/core.TerminationHandler -o ../testutils -s _mock.go
-type TerminationHandler interface {
-	// Abort forces to stop all node components
-	Abort(reason string)
+// ID generates random id.
+func ID() (id core.RecordID) {
+	fuzz.New().Fuzz(&id)
+	return
 }
 
-type terminationHandler struct{}
-
-func (terminationHandler) Abort(reason string) {
-	panic(fmt.Sprintf("Node leave acknowledged by network. Goodbye! Reason: %s", reason))
-}
-
-func NewTerminationHandler() TerminationHandler {
-	return &terminationHandler{}
+// Reference generates random reference.
+func Reference() (ref core.RecordRef) {
+	fuzz.New().Fuzz(&ref)
+	return
 }
