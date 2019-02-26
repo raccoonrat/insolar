@@ -16,25 +16,38 @@
 
 package storage
 
-// func TestObjectStorageMEM_SetRecord(t *testing.T) {
-// 	t.Parallel()
-//
-// 	// Arrange
-// 	ctx := inslogger.TestContext(t)
-//
-// 	objectStorage := &objectStorageMEM{
-// 		recordStorage: objectsPerJet{},
-// 	}
-//
-// 	jetID := testutils.RandomJet()
-//
-// 	rec := &record.RequestRecord{}
-// 	_, err := objectStorage.SetRecord(ctx, jetID, core.GenesisPulse.PulseNumber, rec)
-//
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, 1, len(objectStorage.recordStorage))
-// 	assert.Equal(t, 1, objectStorage.recordStorage.pulseSize)
-// 	assert.Equal(t, 1, objectStorage.recordStorage.memSize)
-//
-// 	assert.True(t, false)
-// }
+import (
+	"testing"
+
+	"github.com/insolar/insolar/core"
+	"github.com/insolar/insolar/instrumentation/inslogger"
+	"github.com/insolar/insolar/ledger/storage/record"
+	"github.com/insolar/insolar/testutils"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestObjectStorageMEM_SetRecord(t *testing.T) {
+	t.Parallel()
+
+	// Arrange
+	ctx := inslogger.TestContext(t)
+	jetID := testutils.RandomJet()
+	objectStorage := &objectStorageMEM{
+		recordStorage: newRecordsPerJet(),
+	}
+	scheme := testutils.NewPlatformCryptographyScheme()
+	objectStorage.PlatformCryptographyScheme = scheme
+
+	rec := &record.RequestRecord{}
+
+	// Act and Assertions
+	gotRef, err := objectStorage.SetRecord(ctx, jetID, core.GenesisPulse.PulseNumber, rec)
+	assert.Nil(t, err)
+
+	gotRec, err := objectStorage.GetRecord(ctx, jetID, gotRef)
+	assert.Nil(t, err)
+	assert.Equal(t, rec, gotRec)
+
+	_, err = objectStorage.SetRecord(ctx, jetID, core.GenesisPulse.PulseNumber, rec)
+	assert.Equal(t, ErrOverride, err)
+}

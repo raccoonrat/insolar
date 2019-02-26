@@ -25,21 +25,33 @@ import (
 	"github.com/insolar/insolar/ledger/storage/record"
 )
 
+/*
+recordStorage:
+	recordsPerJet = map[jetID]recordsPerPulse = map[jetID]map[pulseNumber]recordMemory = map[jeiID]map[pulseNumber]map[objectID]recordValue
+
+blobStorage:
+	blobsPerJet = map[jetID]blobsPerPulse = map[jetID]map[pulseNumber]blobMemory = map[jeiID]map[pulseNumber]map[objectID]blobValue
+
+indexStorage:
+	indicesPerJet = map[jetID]indicesPerPulse = map[jetID]map[pulseNumber]indexMemory = map[jeiID]map[pulseNumber]map[objectID]indexValue
+*/
 type objectStorageMEM struct {
+	PlatformCryptographyScheme core.PlatformCryptographyScheme `inject:""`
+
 	recordStorage recordsPerJet
 	blobStorage   blobsPerJet
 	indexStorage  indicesPerJet
 }
 
 // simple aliases for keys in compound map
-type jetID *core.RecordID
-type objectID *core.RecordID
-type pulseNumber *core.PulseNumber
+type jetID = core.RecordID
+type objectID = core.RecordID
+type pulseNumber = core.PulseNumber
 
 // aliases for records in storage
-type recordValue record.Record
-type blobValue []byte
-type indexValue index.ObjectLifeline
+type recordValue = record.Record
+type blobValue = []byte
+type indexValue = index.ObjectLifeline
 
 // structures for inner memory map
 type recordMemory struct {
@@ -90,8 +102,9 @@ type indicesPerJet struct {
 }
 
 func NewObjectStorageMem() ObjectStorage {
-	panic("implement me")
-	// return new(objectStorageMEM)
+	return &objectStorageMEM{
+		recordStorage: newRecordsPerJet(),
+	}
 }
 
 func (os *objectStorageMEM) GetBlob(ctx context.Context, jetID core.RecordID, id *core.RecordID) ([]byte, error) {
@@ -103,11 +116,19 @@ func (os *objectStorageMEM) SetBlob(ctx context.Context, jetID core.RecordID, pu
 }
 
 func (os *objectStorageMEM) GetRecord(ctx context.Context, jetID core.RecordID, id *core.RecordID) (record.Record, error) {
-	panic("implement me")
+	rec := os.getRecordValue(jetID, id.Pulse(), *id)
+
+	if rec == nil {
+		return nil, core.ErrNotFound
+	}
+
+	return rec, nil
 }
 
 func (os *objectStorageMEM) SetRecord(ctx context.Context, jetID core.RecordID, pulseNumber core.PulseNumber, rec record.Record) (*core.RecordID, error) {
-	panic("implement me")
+	id := record.NewRecordIDFromRecord(os.PlatformCryptographyScheme, pulseNumber, rec)
+
+	return os.setRecordValue(jetID, *id, rec)
 }
 
 func (os *objectStorageMEM) SetMessage(ctx context.Context, jetID core.RecordID, pulseNumber core.PulseNumber, genericMessage core.Message) error {
@@ -146,4 +167,76 @@ func (os *objectStorageMEM) RemoveObjectIndex(
 	ref *core.RecordID,
 ) error {
 	panic("implement me")
+}
+
+// Block for records
+func (os *objectStorageMEM) getJetRecords() *recordsPerJet {
+	return &os.recordStorage
+}
+
+func (os *objectStorageMEM) getPulseRecords(jetID jetID) *recordsPerPulse {
+	lock := os.getJetRecords().rwLock
+	lock.RLock()
+	storage, ok := os.getJetRecords().mem[jetID]
+	lock.RUnlock()
+
+	if !ok {
+		lock.Lock()
+		defer lock.Unlock()
+
+		storage = newRecordsPerPulse()
+		os.getJetRecords().mem[jetID] = storage
+	}
+
+	return &storage
+}
+
+func (os *objectStorageMEM) getRecords(jetID jetID, pulseNumber pulseNumber) *recordMemory {
+	lock := os.getPulseRecords(jetID).rwLock
+	lock.RLock()
+	storage, ok := os.getPulseRecords(jetID).mem[pulseNumber]
+	lock.RUnlock()
+
+	if !ok {
+		lock.Lock()
+		defer lock.Unlock()
+
+		storage = newRecordMemory()
+		os.getPulseRecords(jetID).mem[pulseNumber] = storage
+	}
+
+	return &storage
+}
+
+func (os *objectStorageMEM) getRecordValue(jetID jetID, pulseNumber pulseNumber, id objectID) recordValue {
+	lock := os.getRecords(jetID, pulseNumber).rwLock
+	lock.RLock()
+	defer lock.RUnlock()
+
+	value := os.getRecords(jetID, pulseNumber).mem[id]
+
+	return value
+}
+
+func (os *objectStorageMEM) setRecordValue(jetID jetID, id objectID, rec record.Record) (*objectID, error) {
+	current := os.getRecordValue(jetID, id.Pulse(), id)
+	if current != nil {
+		return nil, ErrOverride
+	}
+	// set value in recordMemory map
+	os.getRecords(jetID, id.Pulse()).mem[id] = rec
+
+	return &id, nil
+}
+
+func newRecordsPerJet() recordsPerJet {
+	return recordsPerJet{mem: map[jetID]recordsPerPulse{}}
+}
+
+func newRecordsPerPulse() recordsPerPulse {
+	return recordsPerPulse{mem: map[pulseNumber]recordMemory{}}
+}
+
+func newRecordMemory() recordMemory {
+	return recordMemory{mem: map[objectID]recordValue{}}
 }
