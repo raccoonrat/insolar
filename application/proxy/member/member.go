@@ -24,7 +24,7 @@ import (
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("11112WbTqK4oaqfoNjzsRSkYgfXSPzFSQjQ2EgWHghw.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("11113Sum2c9Qfs2dvxbuWzhjbarjisA38cwiDPURghR.11111111111111111111111111111111")
 
 // Member holds proxy type
 type Member struct {
@@ -252,6 +252,64 @@ func (r *Member) GetPublicKeyNoWait() error {
 	}
 
 	_, err = proxyctx.Current.RouteCall(r.Reference, false, "GetPublicKey", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// VerifySig is proxy generated method
+func (r *Member) VerifySig(method string, params []byte, seed []byte, sign []byte) error {
+	var args [4]interface{}
+	args[0] = method
+	args[1] = params
+	args[2] = seed
+	args[3] = sign
+
+	var argsSerialized []byte
+
+	ret := [1]interface{}{}
+	var ret0 *foundation.Error
+	ret[0] = &ret0
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "VerifySig", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	err = proxyctx.Current.Deserialize(res, &ret)
+	if err != nil {
+		return err
+	}
+
+	if ret0 != nil {
+		return ret0
+	}
+	return nil
+}
+
+// VerifySigNoWait is proxy generated method
+func (r *Member) VerifySigNoWait(method string, params []byte, seed []byte, sign []byte) error {
+	var args [4]interface{}
+	args[0] = method
+	args[1] = params
+	args[2] = seed
+	args[3] = sign
+
+	var argsSerialized []byte
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "VerifySig", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}

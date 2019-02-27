@@ -18,6 +18,7 @@ package member
 
 import (
 	"fmt"
+	"github.com/insolar/insolar/application/proxy/account"
 
 	"github.com/insolar/insolar/application/contract/member/signer"
 	"github.com/insolar/insolar/application/proxy/nodedomain"
@@ -50,7 +51,7 @@ func New(name string, key string) (*Member, error) {
 	}, nil
 }
 
-func (m *Member) verifySig(method string, params []byte, seed []byte, sign []byte) error {
+func (m *Member) VerifySig(method string, params []byte, seed []byte, sign []byte) error {
 	args, err := core.MarshalArgs(m.GetReference(), method, params, seed)
 	if err != nil {
 		return fmt.Errorf("[ verifySig ] Can't MarshalArgs: %s", err.Error())
@@ -82,7 +83,7 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.createMemberCall(rootDomain, params)
 	}
 
-	if err := m.verifySig(method, params, seed, sign); err != nil {
+	if err := m.VerifySig(method, params, seed, sign); err != nil {
 		return nil, fmt.Errorf("[ Call ]: %s", err.Error())
 	}
 
@@ -101,6 +102,11 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.registerNodeCall(rootDomain, params)
 	case "GetNodeRef":
 		return m.getNodeRefCall(rootDomain, params)
+
+	case "CreateAccount`":
+		return m.createAccount(params)
+	case "GetAccountRef`":
+		return m.getAccountRef()
 	}
 	return nil, &foundation.Error{S: "Unknown method"}
 }
@@ -217,4 +223,25 @@ func (m *Member) getNodeRefCall(ref core.RecordRef, params []byte) (interface{},
 	}
 
 	return nodeRef, nil
+}
+
+func (m *Member) createAccount(params []byte) (string, error) {
+
+	accountHolder := account.New(params)
+	a, err := accountHolder.AsDelegate(m.GetReference())
+	if err != nil {
+		return "", fmt.Errorf("[ createAccount ] Can't save as delegate: %s", err.Error())
+	}
+
+	return a.GetReference().String(), nil
+}
+
+func (m *Member) getAccountRef() (string, error) {
+
+	a, err := account.GetImplementationFrom(m.GetReference())
+	if err != nil {
+		return "", fmt.Errorf("[ getAccountRef ] Can't get implementation: %s", err.Error())
+	}
+
+	return a.GetReference().String(), nil
 }
