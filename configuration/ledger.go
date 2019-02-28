@@ -94,7 +94,7 @@ type Ledger struct {
 func NewLedger() Ledger {
 	return Ledger{
 		Storage: Storage{
-			DataDirectory:       "./data",
+			DataDirectory:       "./dbdata",
 			TxRetriesOnConflict: 3,
 		},
 
