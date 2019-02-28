@@ -41,7 +41,9 @@ type objectStorageMEM struct {
 	recordLock    sync.Mutex
 	recordStorage recordsPerJet
 
-	blobStorage  blobsPerJet
+	blobLock    sync.Mutex
+	blobStorage blobsPerJet
+
 	indexStorage indicesPerJet
 }
 
@@ -105,15 +107,30 @@ type indicesPerJet struct {
 func NewObjectStorageMem() ObjectStorage {
 	return &objectStorageMEM{
 		recordStorage: newRecordsPerJet(),
+		blobStorage:   newBlobsPerJet(),
 	}
 }
 
 func (os *objectStorageMEM) GetBlob(ctx context.Context, jetID core.RecordID, id *core.RecordID) ([]byte, error) {
-	panic("implement me")
+	os.blobLock.Lock()
+	defer os.blobLock.Unlock()
+
+	blob := os.getBlobValue(jetID, id.Pulse(), *id)
+
+	if blob == nil {
+		return nil, core.ErrNotFound
+	}
+
+	return blob, nil
 }
 
 func (os *objectStorageMEM) SetBlob(ctx context.Context, jetID core.RecordID, pulseNumber core.PulseNumber, blob []byte) (*core.RecordID, error) {
-	panic("implement me")
+	os.blobLock.Lock()
+	defer os.blobLock.Unlock()
+
+	id := record.CalculateIDForBlob(os.PlatformCryptographyScheme, pulseNumber, blob)
+
+	return os.setBlobValue(jetID, *id, blob)
 }
 
 func (os *objectStorageMEM) GetRecord(ctx context.Context, jetID core.RecordID, id *core.RecordID) (record.Record, error) {
@@ -136,10 +153,6 @@ func (os *objectStorageMEM) SetRecord(ctx context.Context, jetID core.RecordID, 
 	id := record.NewRecordIDFromRecord(os.PlatformCryptographyScheme, pulseNumber, rec)
 
 	return os.setRecordValue(jetID, *id, rec)
-}
-
-func (os *objectStorageMEM) SetMessage(ctx context.Context, jetID core.RecordID, pulseNumber core.PulseNumber, genericMessage core.Message) error {
-	panic("implement me")
 }
 
 func (os *objectStorageMEM) IterateIndexIDs(
@@ -230,4 +243,58 @@ func newRecordsPerPulse() recordsPerPulse {
 
 func newRecordMemory() recordMemory {
 	return recordMemory{mem: map[objectID]recordValue{}}
+}
+
+// Block for blobs
+func (os *objectStorageMEM) getJetBlobs() *blobsPerJet {
+	return &os.blobStorage
+}
+
+func (os *objectStorageMEM) getPulseBlobs(jetID jetID) *blobsPerPulse {
+	storage, ok := os.getJetBlobs().mem[jetID]
+
+	if !ok {
+		storage = newBlobsPerPulse()
+		os.getJetBlobs().mem[jetID] = storage
+	}
+
+	return &storage
+}
+
+func (os *objectStorageMEM) getBlobs(jetID jetID, pulseNumber pulseNumber) *blobMemory {
+	storage, ok := os.getPulseBlobs(jetID).mem[pulseNumber]
+
+	if !ok {
+		storage = newBlobMemory()
+		os.getPulseBlobs(jetID).mem[pulseNumber] = storage
+	}
+
+	return &storage
+}
+
+func (os *objectStorageMEM) getBlobValue(jetID jetID, pulseNumber pulseNumber, id objectID) blobValue {
+	value := os.getBlobs(jetID, pulseNumber).mem[id]
+
+	return value
+}
+
+func (os *objectStorageMEM) setBlobValue(jetID jetID, id objectID, blob []byte) (*objectID, error) {
+	// TODO: @imarkin. 28.02.19. Blob override is ok.
+
+	// set value in blobMemory map
+	os.getBlobs(jetID, id.Pulse()).mem[id] = blob
+
+	return &id, nil
+}
+
+func newBlobsPerJet() blobsPerJet {
+	return blobsPerJet{mem: map[jetID]blobsPerPulse{}}
+}
+
+func newBlobsPerPulse() blobsPerPulse {
+	return blobsPerPulse{mem: map[pulseNumber]blobMemory{}}
+}
+
+func newBlobMemory() blobMemory {
+	return blobMemory{mem: map[objectID]blobValue{}}
 }
