@@ -38,9 +38,11 @@ indexStorage:
 type objectStorageMEM struct {
 	PlatformCryptographyScheme core.PlatformCryptographyScheme `inject:""`
 
+	recordLock    sync.Mutex
 	recordStorage recordsPerJet
-	blobStorage   blobsPerJet
-	indexStorage  indicesPerJet
+
+	blobStorage  blobsPerJet
+	indexStorage indicesPerJet
 }
 
 // simple aliases for keys in compound map
@@ -55,8 +57,7 @@ type indexValue = index.ObjectLifeline
 
 // structures for inner memory map
 type recordMemory struct {
-	rwLock sync.RWMutex
-	mem    map[objectID]recordValue
+	mem map[objectID]recordValue
 }
 
 type blobMemory struct {
@@ -71,9 +72,10 @@ type indexMemory struct {
 
 // structures for memory maps per pulses
 type recordsPerPulse struct {
-	rwLock sync.RWMutex
-	mem    map[pulseNumber]recordMemory
+	mem map[pulseNumber]recordMemory
 }
+
+// type recordsPerPulse = map[pulseNumber]recordMemory
 
 type blobsPerPulse struct {
 	rwLock sync.RWMutex
@@ -87,8 +89,7 @@ type indicesPerPulse struct {
 
 // structures for memory maps with pulses per jet
 type recordsPerJet struct {
-	rwLock sync.RWMutex
-	mem    map[jetID]recordsPerPulse
+	mem map[jetID]recordsPerPulse
 }
 
 type blobsPerJet struct {
@@ -116,6 +117,9 @@ func (os *objectStorageMEM) SetBlob(ctx context.Context, jetID core.RecordID, pu
 }
 
 func (os *objectStorageMEM) GetRecord(ctx context.Context, jetID core.RecordID, id *core.RecordID) (record.Record, error) {
+	os.recordLock.Lock()
+	defer os.recordLock.Unlock()
+
 	rec := os.getRecordValue(jetID, id.Pulse(), *id)
 
 	if rec == nil {
@@ -126,6 +130,9 @@ func (os *objectStorageMEM) GetRecord(ctx context.Context, jetID core.RecordID, 
 }
 
 func (os *objectStorageMEM) SetRecord(ctx context.Context, jetID core.RecordID, pulseNumber core.PulseNumber, rec record.Record) (*core.RecordID, error) {
+	os.recordLock.Lock()
+	defer os.recordLock.Unlock()
+
 	id := record.NewRecordIDFromRecord(os.PlatformCryptographyScheme, pulseNumber, rec)
 
 	return os.setRecordValue(jetID, *id, rec)
@@ -175,15 +182,9 @@ func (os *objectStorageMEM) getJetRecords() *recordsPerJet {
 }
 
 func (os *objectStorageMEM) getPulseRecords(jetID jetID) *recordsPerPulse {
-	lock := os.getJetRecords().rwLock
-	lock.RLock()
 	storage, ok := os.getJetRecords().mem[jetID]
-	lock.RUnlock()
 
 	if !ok {
-		lock.Lock()
-		defer lock.Unlock()
-
 		storage = newRecordsPerPulse()
 		os.getJetRecords().mem[jetID] = storage
 	}
@@ -192,15 +193,9 @@ func (os *objectStorageMEM) getPulseRecords(jetID jetID) *recordsPerPulse {
 }
 
 func (os *objectStorageMEM) getRecords(jetID jetID, pulseNumber pulseNumber) *recordMemory {
-	lock := os.getPulseRecords(jetID).rwLock
-	lock.RLock()
 	storage, ok := os.getPulseRecords(jetID).mem[pulseNumber]
-	lock.RUnlock()
 
 	if !ok {
-		lock.Lock()
-		defer lock.Unlock()
-
 		storage = newRecordMemory()
 		os.getPulseRecords(jetID).mem[pulseNumber] = storage
 	}
@@ -209,10 +204,6 @@ func (os *objectStorageMEM) getRecords(jetID jetID, pulseNumber pulseNumber) *re
 }
 
 func (os *objectStorageMEM) getRecordValue(jetID jetID, pulseNumber pulseNumber, id objectID) recordValue {
-	lock := os.getRecords(jetID, pulseNumber).rwLock
-	lock.RLock()
-	defer lock.RUnlock()
-
 	value := os.getRecords(jetID, pulseNumber).mem[id]
 
 	return value
