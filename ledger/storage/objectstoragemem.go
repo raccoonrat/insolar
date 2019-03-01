@@ -18,8 +18,10 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
+	"github.com/dgraph-io/badger"
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/ledger/storage/index"
 	"github.com/insolar/insolar/ledger/storage/record"
@@ -38,13 +40,70 @@ indexStorage:
 type objectStorageMEM struct {
 	PlatformCryptographyScheme core.PlatformCryptographyScheme `inject:""`
 
+	locks    []*core.RecordID
+	idlocker *IDLocker
+
 	recordLock    sync.Mutex
 	recordStorage recordsPerJet
 
 	blobLock    sync.Mutex
 	blobStorage blobsPerJet
 
+	indexLock    sync.Mutex
 	indexStorage indicesPerJet
+}
+
+func (os *objectStorageMEM) BeginTransaction(update bool) (*TransactionManager, error) {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) View(ctx context.Context, fn func(*TransactionManager) error) error {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) Update(ctx context.Context, fn func(*TransactionManager) error) error {
+	// panic("implement me")
+	return fn(os)
+}
+
+func (os *objectStorageMEM) IterateRecordsOnPulse(
+	ctx context.Context,
+	jetID core.RecordID,
+	pulse core.PulseNumber,
+	handler func(id core.RecordID, rec record.Record) error,
+) error {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) StoreKeyValues(ctx context.Context, kvs []core.KV) error {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) GetBadgerDB() *badger.DB {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) Close() error {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) set(ctx context.Context, key, value []byte) error {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) get(ctx context.Context, key []byte) ([]byte, error) {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) waitingFlight() {
+	panic("implement me")
+}
+
+func (os *objectStorageMEM) iterate(ctx context.Context,
+	prefix []byte,
+	handler func(k, v []byte) error,
+) error {
+	panic("implement me")
 }
 
 // simple aliases for keys in compound map
@@ -55,7 +114,7 @@ type pulseNumber = core.PulseNumber
 // aliases for records in storage
 type recordValue = record.Record
 type blobValue = []byte
-type indexValue = index.ObjectLifeline
+type indexValue = *index.ObjectLifeline
 
 // structures for inner memory map
 type recordMemory struct {
@@ -63,13 +122,11 @@ type recordMemory struct {
 }
 
 type blobMemory struct {
-	rwLock sync.RWMutex
-	mem    map[objectID]blobValue
+	mem map[objectID]blobValue
 }
 
 type indexMemory struct {
-	rwLock sync.RWMutex
-	mem    map[objectID]indexValue
+	mem map[objectID]indexValue
 }
 
 // structures for memory maps per pulses
@@ -80,13 +137,11 @@ type recordsPerPulse struct {
 // type recordsPerPulse = map[pulseNumber]recordMemory
 
 type blobsPerPulse struct {
-	rwLock sync.RWMutex
-	mem    map[pulseNumber]blobMemory
+	mem map[pulseNumber]blobMemory
 }
 
 type indicesPerPulse struct {
-	rwLock sync.RWMutex
-	mem    map[pulseNumber]indexMemory
+	mem map[pulseNumber]indexMemory
 }
 
 // structures for memory maps with pulses per jet
@@ -95,19 +150,19 @@ type recordsPerJet struct {
 }
 
 type blobsPerJet struct {
-	rwLock sync.RWMutex
-	mem    map[jetID]blobsPerPulse
+	mem map[jetID]blobsPerPulse
 }
 
 type indicesPerJet struct {
-	rwLock sync.RWMutex
-	mem    map[jetID]indicesPerPulse
+	mem map[jetID]indicesPerPulse
 }
 
 func NewObjectStorageMem() ObjectStorage {
 	return &objectStorageMEM{
 		recordStorage: newRecordsPerJet(),
 		blobStorage:   newBlobsPerJet(),
+		indexStorage:  newIndicesPerJet(),
+		idlocker:      NewIDLocker(),
 	}
 }
 
@@ -137,10 +192,10 @@ func (os *objectStorageMEM) GetRecord(ctx context.Context, jetID core.RecordID, 
 	os.recordLock.Lock()
 	defer os.recordLock.Unlock()
 
-	rec := os.getRecordValue(jetID, id.Pulse(), *id)
+	rec, err := os.getRecordValue(jetID, id.Pulse(), *id)
 
-	if rec == nil {
-		return nil, core.ErrNotFound
+	if err != nil {
+		return nil, err
 	}
 
 	return rec, nil
@@ -160,7 +215,22 @@ func (os *objectStorageMEM) IterateIndexIDs(
 	jetID core.RecordID,
 	handler func(id core.RecordID) error,
 ) error {
-	panic("implement me")
+	os.indexLock.Lock()
+	defer os.indexLock.Unlock()
+
+	return os.iterate(jetID, handler)
+}
+
+func (os *objectStorageMEM) iterate(jetID jetID, handler func(id core.RecordID) error) error {
+	for _, indicesPerPulse := range os.getPulseIndices(jetID).mem {
+		for id := range indicesPerPulse.mem {
+			err := handler(id)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (os *objectStorageMEM) GetObjectIndex(
@@ -169,7 +239,27 @@ func (os *objectStorageMEM) GetObjectIndex(
 	id *core.RecordID,
 	forupdate bool,
 ) (*index.ObjectLifeline, error) {
-	panic("implement me")
+	if forupdate {
+		os.lockOnID(id)
+	}
+	defer os.releaseLocks()
+
+	os.indexLock.Lock()
+	defer os.indexLock.Unlock()
+
+	fmt.Println("=== GET ===: ")
+	fmt.Println("JET_ID: ", jetID)
+	fmt.Println("PULSE: ", id.Pulse())
+	fmt.Println("ID: ", id)
+
+	result, err := os.getIndexValue(jetID, id.Pulse(), *id)
+
+	if err != nil {
+		fmt.Println("OOOOOOOOOPS")
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (os *objectStorageMEM) SetObjectIndex(
@@ -178,7 +268,15 @@ func (os *objectStorageMEM) SetObjectIndex(
 	id *core.RecordID,
 	idx *index.ObjectLifeline,
 ) error {
-	panic("implement me")
+	os.indexLock.Lock()
+	defer os.indexLock.Unlock()
+
+	fmt.Println("+++ SET +++: ")
+	fmt.Println("JET_ID: ", jetID)
+	fmt.Println("PULSE: ", id.Pulse())
+	fmt.Println("ID: ", id)
+
+	return os.setIndexValue(jetID, *id, idx)
 }
 
 func (os *objectStorageMEM) RemoveObjectIndex(
@@ -186,7 +284,10 @@ func (os *objectStorageMEM) RemoveObjectIndex(
 	jetID core.RecordID,
 	ref *core.RecordID,
 ) error {
-	panic("implement me")
+	os.indexLock.Lock()
+	defer os.indexLock.Unlock()
+
+	return os.removeObjectIndex(jetID, *ref)
 }
 
 // Block for records
@@ -216,15 +317,20 @@ func (os *objectStorageMEM) getRecords(jetID jetID, pulseNumber pulseNumber) *re
 	return &storage
 }
 
-func (os *objectStorageMEM) getRecordValue(jetID jetID, pulseNumber pulseNumber, id objectID) recordValue {
-	value := os.getRecords(jetID, pulseNumber).mem[id]
+func (os *objectStorageMEM) getRecordValue(jetID jetID, pulseNumber pulseNumber, id objectID) (recordValue, error) {
+	value, ok := os.getRecords(jetID, pulseNumber).mem[id]
 
-	return value
+	if !ok {
+		return nil, core.ErrNotFound
+	}
+
+	return value, nil
 }
 
 func (os *objectStorageMEM) setRecordValue(jetID jetID, id objectID, rec record.Record) (*objectID, error) {
-	current := os.getRecordValue(jetID, id.Pulse(), id)
-	if current != nil {
+	_, err := os.getRecordValue(jetID, id.Pulse(), id)
+
+	if err == nil {
 		return nil, ErrOverride
 	}
 	// set value in recordMemory map
@@ -297,4 +403,80 @@ func newBlobsPerPulse() blobsPerPulse {
 
 func newBlobMemory() blobMemory {
 	return blobMemory{mem: map[objectID]blobValue{}}
+}
+
+// Block for indices
+func (os *objectStorageMEM) getJetIndices() *indicesPerJet {
+	return &os.indexStorage
+}
+
+func (os *objectStorageMEM) getPulseIndices(jetID jetID) *indicesPerPulse {
+	storage, ok := os.getJetIndices().mem[jetID]
+
+	if !ok {
+		storage = newIndicesPerPulse()
+		os.getJetIndices().mem[jetID] = storage
+	}
+
+	return &storage
+}
+
+func (os *objectStorageMEM) getIndices(jetID jetID, pulseNumber pulseNumber) *indexMemory {
+	storage, ok := os.getPulseIndices(jetID).mem[pulseNumber]
+
+	if !ok {
+		storage = newIndexMemory()
+		os.getPulseIndices(jetID).mem[pulseNumber] = storage
+	}
+
+	return &storage
+}
+
+func (os *objectStorageMEM) getIndexValue(jetID jetID, pulseNumber pulseNumber, id objectID) (indexValue, error) {
+	value, ok := os.getIndices(jetID, pulseNumber).mem[id]
+
+	if !ok {
+		return nil, core.ErrNotFound
+	}
+
+	return value, nil
+}
+
+func (os *objectStorageMEM) setIndexValue(jetID jetID, id objectID, idx indexValue) error {
+	if idx.Delegates == nil {
+		idx.Delegates = map[core.RecordRef]core.RecordRef{}
+	}
+
+	os.getIndices(jetID, id.Pulse()).mem[id] = idx
+
+	return nil
+}
+
+func (os *objectStorageMEM) removeObjectIndex(jetID jetID, id objectID) error {
+	delete(os.getIndices(jetID, id.Pulse()).mem, id)
+
+	return nil
+}
+
+func newIndicesPerJet() indicesPerJet {
+	return indicesPerJet{mem: map[jetID]indicesPerPulse{}}
+}
+
+func newIndicesPerPulse() indicesPerPulse {
+	return indicesPerPulse{mem: map[pulseNumber]indexMemory{}}
+}
+
+func newIndexMemory() indexMemory {
+	return indexMemory{mem: map[objectID]indexValue{}}
+}
+
+func (os *objectStorageMEM) lockOnID(id *core.RecordID) {
+	os.idlocker.Lock(id)
+	os.locks = append(os.locks, id)
+}
+
+func (os *objectStorageMEM) releaseLocks() {
+	for _, id := range os.locks {
+		os.idlocker.Unlock(id)
+	}
 }

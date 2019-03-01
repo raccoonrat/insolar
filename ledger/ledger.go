@@ -95,9 +95,14 @@ func GetLedgerComponents(conf configuration.Ledger, certificate core.Certificate
 	case core.StaticRoleUnknown, core.StaticRoleHeavyMaterial:
 		pulseTracker = storage.NewPulseTracker()
 		objectStorage = storage.NewObjectStorageDB()
-	default:
+	case core.StaticRoleVirtual:
+		pulseTracker = storage.NewPulseTrackerMemory()
+		objectStorage = storage.NewObjectStorageDB()
+	case core.StaticRoleLightMaterial:
 		pulseTracker = storage.NewPulseTrackerMemory()
 		objectStorage = storage.NewObjectStorageMem()
+	default:
+		panic("failed to initialize ObjectStorage")
 	}
 
 	return []interface{}{
