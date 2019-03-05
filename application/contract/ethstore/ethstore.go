@@ -18,14 +18,17 @@ package ethstore
 
 import (
 	"fmt"
+	"github.com/insolar/insolar/application/contract/member/signer"
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/logicrunner/goplugin/foundation"
+	"strconv"
 )
 
 // EthStore
 type EthStore struct {
 	foundation.BaseContract
-	EthHashMap map[string]StoreElem
+	PublicKey  string
+	EthAddrMap map[string]StoreElem
 }
 
 type StoreElem struct {
@@ -38,34 +41,102 @@ type StoreElem struct {
 }
 
 // New creates EthStore
-func New() (*EthStore, error) {
+func New(publicKey string) (*EthStore, error) {
 	return &EthStore{
-		EthHashMap: make(map[string]StoreElem),
+		PublicKey:  publicKey,
+		EthAddrMap: make(map[string]StoreElem),
 	}, nil
 }
 
-// SaveToMap create new key with value in map
-func (ethStore *EthStore) SaveToMap(EthHash string, EthAddr string, Balance uint, EthTxHash string) error {
+var INSATTR_GetPublicKey_API = true
 
-	ethStore.EthHashMap[EthHash] =
-		StoreElem{
-			EthHash:   EthHash,
-			EthAddr:   EthAddr,
-			Balance:   Balance,
-			EthTxHash: EthTxHash,
-			Marker:    false,
-		}
+func (ethStore *EthStore) GetPublicKey() (string, error) {
+	return ethStore.PublicKey, nil
+}
 
+func (ethStore *EthStore) verifySig(method string, params []byte, seed []byte, sign []byte) error {
+	args, err := core.MarshalArgs(method, params, seed)
+	if err != nil {
+		return fmt.Errorf("[ verifySig ] Can't MarshalArgs: %s", err.Error())
+	}
+	key, err := ethStore.GetPublicKey()
+	if err != nil {
+		return fmt.Errorf("[ verifySig ]: %s", err.Error())
+	}
+
+	publicKey, err := foundation.ImportPublicKey(key)
+	if err != nil {
+		return fmt.Errorf("[ verifySig ] Invalid public key")
+	}
+
+	verified := foundation.Verify(args, sign, publicKey)
+	if !verified {
+		return fmt.Errorf("[ verifySig ] Incorrect signature")
+	}
 	return nil
 }
 
-// VerifyEthBalance activate Eth balance
-func (ethStore *EthStore) VerifyEthBalance(EthHash string, AccountRef *core.RecordRef) (uint, error) {
+var INSATTR_Call_API = true
 
-	if storeElem, ok := ethStore.EthHashMap[EthHash]; ok {
+// Call method for authorized calls
+func (ethStore *EthStore) Call(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
+
+	if err := ethStore.verifySig(method, params, seed, sign); err != nil {
+		return nil, fmt.Errorf("[ Call ]: %s", err.Error())
+	}
+
+	switch method {
+	case "SaveToMap":
+		return ethStore.saveToMap(params)
+	case "VerifyEthBalance":
+		return ethStore.VerifyEthBalance(params)
+	}
+
+	return nil, &foundation.Error{S: "Unknown method"}
+}
+
+// SaveToMap create new key with value in map
+func (ethStore *EthStore) saveToMap(params []byte) (interface{}, error) {
+
+	var ethAddr, balanceStr, ethTxHash string
+	if err := signer.UnmarshalParams(params, &ethAddr, &balanceStr, &ethTxHash); err != nil {
+		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
+	}
+
+	balance, err := strconv.Atoi(balanceStr)
+	if err != nil {
+		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
+	}
+
+	ethStore.EthAddrMap[ethAddr] =
+		StoreElem{
+			EthAddr:   ethAddr,
+			Balance:   uint(balance),
+			EthTxHash: ethTxHash,
+			Marker:    false,
+		}
+
+	return nil, nil
+}
+
+// VerifyEthBalance activate Eth balance
+func (ethStore *EthStore) VerifyEthBalance(params []byte) (uint, error) {
+
+	var ethAddr, accountRefStr string
+	if err := signer.UnmarshalParams(params, &ethAddr, &accountRefStr); err != nil {
+		return 0, fmt.Errorf("[ VerifyEthBalance ]: %s", err.Error())
+	}
+
+	accountRef, err := core.NewRefFromBase58(accountRefStr)
+	if err != nil {
+		return 0, fmt.Errorf("[ VerifyEthBalance ] Failed to parse 'to' param: %s", err.Error())
+	}
+
+	if storeElem, ok := ethStore.EthAddrMap[ethAddr]; ok {
 		if !storeElem.Marker {
 			storeElem.Marker = true
-			ethStore.EthHashMap[EthHash] = storeElem
+			storeElem.AccountRef = accountRef
+			ethStore.EthAddrMap[ethAddr] = storeElem
 			return storeElem.Balance, nil
 		} else {
 			return 0, fmt.Errorf("[ VerifyEthBalance ] This ethereum hash has already been used.")
@@ -77,10 +148,10 @@ func (ethStore *EthStore) VerifyEthBalance(EthHash string, AccountRef *core.Reco
 
 // GetEthList return all map
 func (ethStore *EthStore) GetEthList() ([]StoreElem, error) {
-	result := [len(ethStore.EthHashMap)]StoreElem{}
+	result := [len(ethStore.EthAddrMap)]StoreElem{}
 	i := 0
 
-	for _, storeElem := range ethStore.EthHashMap {
+	for _, storeElem := range ethStore.EthAddrMap {
 		result[i] = storeElem
 		i++
 	}

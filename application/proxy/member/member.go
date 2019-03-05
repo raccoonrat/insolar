@@ -259,7 +259,7 @@ func (r *Member) GetPublicKeyNoWait() error {
 	return nil
 }
 
-// VerifySig is proxy generated method
+// verifySig is proxy generated method
 func (r *Member) VerifySig(method string, params []byte, seed []byte, sign []byte) error {
 	var args [4]interface{}
 	args[0] = method
@@ -278,7 +278,7 @@ func (r *Member) VerifySig(method string, params []byte, seed []byte, sign []byt
 		return err
 	}
 
-	res, err := proxyctx.Current.RouteCall(r.Reference, true, "VerifySig", argsSerialized, *PrototypeReference)
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "verifySig", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (r *Member) VerifySigNoWait(method string, params []byte, seed []byte, sign
 		return err
 	}
 
-	_, err = proxyctx.Current.RouteCall(r.Reference, false, "VerifySig", argsSerialized, *PrototypeReference)
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "verifySig", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}

@@ -291,6 +291,7 @@ func (g *Genesis) activateSmartContracts(
 	ctx context.Context, cb *ContractsBuilder, rootPubKey string, rootDomainID *core.RecordID,
 ) ([]genesisNode, error) {
 
+	// todo pea: ethstore create
 	rootDomainDesc, err := g.activateRootDomain(ctx, cb, rootDomainID)
 	errMsg := "[ ActivateSmartContracts ]"
 	if err != nil {
