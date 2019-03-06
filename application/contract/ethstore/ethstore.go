@@ -106,6 +106,10 @@ func (ethStore *EthStore) saveToMap(params []byte) (interface{}, error) {
 		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
 	}
 
+	if _, ok := ethStore.EthAddrMap[ethAddr]; ok {
+		return nil, fmt.Errorf("[ saveToMap ]: element is already exist")
+	}
+
 	ethStore.EthAddrMap[ethAddr] =
 		StoreElem{
 			EthAddr:   ethAddr,
