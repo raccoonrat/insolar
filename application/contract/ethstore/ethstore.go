@@ -88,8 +88,6 @@ func (ethStore *EthStore) Call(rootDomain core.RecordRef, method string, params 
 	switch method {
 	case "SaveToMap":
 		return ethStore.saveToMap(params)
-	case "VerifyEthBalance":
-		return ethStore.VerifyEthBalance(params)
 	}
 
 	return nil, &foundation.Error{S: "Unknown method"}
@@ -148,7 +146,7 @@ func (ethStore *EthStore) VerifyEthBalance(params []byte) (uint, error) {
 
 // GetEthList return all map
 func (ethStore *EthStore) GetEthList() ([]StoreElem, error) {
-	result := [len(ethStore.EthAddrMap)]StoreElem{}
+	result := make([]StoreElem, len(ethStore.EthAddrMap))
 	i := 0
 
 	for _, storeElem := range ethStore.EthAddrMap {

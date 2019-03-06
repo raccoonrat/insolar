@@ -33,7 +33,7 @@ type StoreElem struct {
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("11113avYAQmWfocJSZqLuBrCwigYFDPMNeaLcXgQxNJ.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("1111WFNCoYYivne1SUxZyDf72u27rWEdP3f162cXj3.11111111111111111111111111111111")
 
 // EthStore holds proxy type
 type EthStore struct {
@@ -86,8 +86,9 @@ func GetImplementationFrom(object core.RecordRef) (*EthStore, error) {
 }
 
 // New is constructor
-func New() *ContractConstructorHolder {
-	var args [0]interface{}
+func New(publicKey string) *ContractConstructorHolder {
+	var args [1]interface{}
+	args[0] = publicKey
 
 	var argsSerialized []byte
 	err := proxyctx.Current.Serialize(args, &argsSerialized)
@@ -162,48 +163,42 @@ func (r *EthStore) GetCode() (core.RecordRef, error) {
 	return r.Code, nil
 }
 
-// SaveToMap is proxy generated method
-func (r *EthStore) SaveToMap(EthHash string, EthAddr string, Balance uint, EthTxHash string) error {
-	var args [4]interface{}
-	args[0] = EthHash
-	args[1] = EthAddr
-	args[2] = Balance
-	args[3] = EthTxHash
+// GetPublicKey is proxy generated method
+func (r *EthStore) GetPublicKey() (string, error) {
+	var args [0]interface{}
 
 	var argsSerialized []byte
 
-	ret := [1]interface{}{}
-	var ret0 *foundation.Error
+	ret := [2]interface{}{}
+	var ret0 string
 	ret[0] = &ret0
+	var ret1 *foundation.Error
+	ret[1] = &ret1
 
 	err := proxyctx.Current.Serialize(args, &argsSerialized)
 	if err != nil {
-		return err
+		return ret0, err
 	}
 
-	res, err := proxyctx.Current.RouteCall(r.Reference, true, "SaveToMap", argsSerialized, *PrototypeReference)
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "GetPublicKey", argsSerialized, *PrototypeReference)
 	if err != nil {
-		return err
+		return ret0, err
 	}
 
 	err = proxyctx.Current.Deserialize(res, &ret)
 	if err != nil {
-		return err
+		return ret0, err
 	}
 
-	if ret0 != nil {
-		return ret0
+	if ret1 != nil {
+		return ret0, ret1
 	}
-	return nil
+	return ret0, nil
 }
 
-// SaveToMapNoWait is proxy generated method
-func (r *EthStore) SaveToMapNoWait(EthHash string, EthAddr string, Balance uint, EthTxHash string) error {
-	var args [4]interface{}
-	args[0] = EthHash
-	args[1] = EthAddr
-	args[2] = Balance
-	args[3] = EthTxHash
+// GetPublicKeyNoWait is proxy generated method
+func (r *EthStore) GetPublicKeyNoWait() error {
+	var args [0]interface{}
 
 	var argsSerialized []byte
 
@@ -212,7 +207,69 @@ func (r *EthStore) SaveToMapNoWait(EthHash string, EthAddr string, Balance uint,
 		return err
 	}
 
-	_, err = proxyctx.Current.RouteCall(r.Reference, false, "SaveToMap", argsSerialized, *PrototypeReference)
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "GetPublicKey", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Call is proxy generated method
+func (r *EthStore) Call(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
+	var args [5]interface{}
+	args[0] = rootDomain
+	args[1] = method
+	args[2] = params
+	args[3] = seed
+	args[4] = sign
+
+	var argsSerialized []byte
+
+	ret := [2]interface{}{}
+	var ret0 interface{}
+	ret[0] = &ret0
+	var ret1 *foundation.Error
+	ret[1] = &ret1
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return ret0, err
+	}
+
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "Call", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return ret0, err
+	}
+
+	err = proxyctx.Current.Deserialize(res, &ret)
+	if err != nil {
+		return ret0, err
+	}
+
+	if ret1 != nil {
+		return ret0, ret1
+	}
+	return ret0, nil
+}
+
+// CallNoWait is proxy generated method
+func (r *EthStore) CallNoWait(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) error {
+	var args [5]interface{}
+	args[0] = rootDomain
+	args[1] = method
+	args[2] = params
+	args[3] = seed
+	args[4] = sign
+
+	var argsSerialized []byte
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "Call", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -221,10 +278,9 @@ func (r *EthStore) SaveToMapNoWait(EthHash string, EthAddr string, Balance uint,
 }
 
 // VerifyEthBalance is proxy generated method
-func (r *EthStore) VerifyEthBalance(EthHash string, AccountRef *core.RecordRef) (uint, error) {
-	var args [2]interface{}
-	args[0] = EthHash
-	args[1] = AccountRef
+func (r *EthStore) VerifyEthBalance(params []byte) (uint, error) {
+	var args [1]interface{}
+	args[0] = params
 
 	var argsSerialized []byte
 
@@ -256,10 +312,9 @@ func (r *EthStore) VerifyEthBalance(EthHash string, AccountRef *core.RecordRef) 
 }
 
 // VerifyEthBalanceNoWait is proxy generated method
-func (r *EthStore) VerifyEthBalanceNoWait(EthHash string, AccountRef *core.RecordRef) error {
-	var args [2]interface{}
-	args[0] = EthHash
-	args[1] = AccountRef
+func (r *EthStore) VerifyEthBalanceNoWait(params []byte) error {
+	var args [1]interface{}
+	args[0] = params
 
 	var argsSerialized []byte
 

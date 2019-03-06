@@ -51,7 +51,7 @@ func New(name string, key string) (*Member, error) {
 	}, nil
 }
 
-func (m *Member) verifySig(method string, params []byte, seed []byte, sign []byte) error {
+func (m *Member) VerifySig(method string, params []byte, seed []byte, sign []byte) error {
 	args, err := core.MarshalArgs(m.GetReference(), method, params, seed)
 	if err != nil {
 		return fmt.Errorf("[ verifySig ] Can't MarshalArgs: %s", err.Error())
@@ -83,7 +83,7 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.createMemberCall(rootDomain, params)
 	}
 
-	if err := m.verifySig(method, params, seed, sign); err != nil {
+	if err := m.VerifySig(method, params, seed, sign); err != nil {
 		return nil, fmt.Errorf("[ Call ]: %s", err.Error())
 	}
 

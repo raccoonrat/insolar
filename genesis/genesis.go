@@ -21,6 +21,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
+	"github.com/insolar/insolar/application/contract/ethstore"
 	"io/ioutil"
 	"os"
 	"path"
@@ -48,10 +49,12 @@ const (
 	walletContract    = "wallet"
 	memberContract    = "member"
 	allowanceContract = "allowance"
+	ethstoreContract  = "ethstore"
+	accountContract   = "account"
 	nodeAmount        = 32
 )
 
-var contractNames = []string{walletContract, memberContract, allowanceContract, rootDomain, nodeDomain, nodeRecord}
+var contractNames = []string{walletContract, memberContract, allowanceContract, rootDomain, nodeDomain, nodeRecord, ethstoreContract, accountContract}
 
 type messageBusLocker interface {
 	Lock(ctx context.Context)
@@ -185,24 +188,64 @@ func (g *Genesis) activateNodeDomain(
 	return desc, nil
 }
 
+func (g *Genesis) activateEthStore(
+	ctx context.Context, domain *core.RecordID, cb *ContractsBuilder, rootPubKey string,
+) error {
+
+	e, err := ethstore.New(rootPubKey)
+	if err != nil {
+		return errors.Wrap(err, "[ activateEthStore ]")
+	}
+
+	instanceData, err := serializeInstance(e)
+	if err != nil {
+		return errors.Wrap(err, "[ activateEthStore ]")
+	}
+
+	contractID, err := g.ArtifactManager.RegisterRequest(ctx, *g.rootDomainRef, &message.Parcel{Msg: &message.GenesisRequest{Name: "EthStore"}})
+
+	if err != nil {
+		return errors.Wrap(err, "[ activateEthStore ] couldn't create EthStore instance")
+	}
+	contract := core.NewRecordRef(*domain, *contractID)
+	_, err = g.ArtifactManager.ActivateObject(
+		ctx,
+		core.RecordRef{},
+		*contract,
+		*g.rootDomainRef,
+		*cb.Prototypes[ethstoreContract],
+		false,
+		instanceData,
+	)
+	if err != nil {
+		return errors.Wrap(err, "[ activateEthStore ] couldn't create root member instance")
+	}
+	_, err = g.ArtifactManager.RegisterResult(ctx, *g.rootDomainRef, *contract, nil)
+	if err != nil {
+		return errors.Wrap(err, "[ activateEthStore ] couldn't create root member instance")
+	}
+	g.rootMemberRef = contract
+	return nil
+}
+
 func (g *Genesis) activateRootMember(
 	ctx context.Context, domain *core.RecordID, cb *ContractsBuilder, rootPubKey string,
 ) error {
 
 	m, err := member.New("RootMember", rootPubKey)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootMember ]")
+		return errors.Wrap(err, "[ activateRootMember ]")
 	}
 
 	instanceData, err := serializeInstance(m)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootMember ]")
+		return errors.Wrap(err, "[ activateRootMember ]")
 	}
 
 	contractID, err := g.ArtifactManager.RegisterRequest(ctx, *g.rootDomainRef, &message.Parcel{Msg: &message.GenesisRequest{Name: "RootMember"}})
 
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootMember ] couldn't create root member instance")
+		return errors.Wrap(err, "[ activateRootMember ] couldn't create root member instance")
 	}
 	contract := core.NewRecordRef(*domain, *contractID)
 	_, err = g.ArtifactManager.ActivateObject(
@@ -215,11 +258,11 @@ func (g *Genesis) activateRootMember(
 		instanceData,
 	)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootMember ] couldn't create root member instance")
+		return errors.Wrap(err, "[ activateRootMember ] couldn't create root member instance")
 	}
 	_, err = g.ArtifactManager.RegisterResult(ctx, *g.rootDomainRef, *contract, nil)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootMember ] couldn't create root member instance")
+		return errors.Wrap(err, "[ ctivateRootMember ] couldn't create root member instance")
 	}
 	g.rootMemberRef = contract
 	return nil
@@ -288,7 +331,7 @@ func (g *Genesis) activateRootMemberWallet(
 }
 
 func (g *Genesis) activateSmartContracts(
-	ctx context.Context, cb *ContractsBuilder, rootPubKey string, rootDomainID *core.RecordID,
+	ctx context.Context, cb *ContractsBuilder, rootPubKey string, oraclePubKey string, rootDomainID *core.RecordID,
 ) ([]genesisNode, error) {
 
 	// todo pea: ethstore create
@@ -302,6 +345,10 @@ func (g *Genesis) activateSmartContracts(
 		return nil, errors.Wrap(err, errMsg)
 	}
 	err = g.activateRootMember(ctx, rootDomainID, cb, rootPubKey)
+	if err != nil {
+		return nil, errors.Wrap(err, errMsg)
+	}
+	err = g.activateEthStore(ctx, rootDomainID, cb, oraclePubKey)
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
@@ -579,7 +626,12 @@ func (g *Genesis) Start(ctx context.Context) error {
 		return errors.Wrap(err, "[ Genesis ] couldn't get root keys")
 	}
 
-	nodes, err := g.activateSmartContracts(ctx, cb, rootPubKey, rootDomainID)
+	_, oraclePubKey, err := getKeysFromFile(ctx, g.config.OracleKeysFile)
+	if err != nil {
+		return errors.Wrap(err, "[ Genesis ] couldn't get oracle keys")
+	}
+
+	nodes, err := g.activateSmartContracts(ctx, cb, rootPubKey, oraclePubKey, rootDomainID)
 	if err != nil {
 		return errors.Wrap(err, "[ Genesis ]")
 	}
