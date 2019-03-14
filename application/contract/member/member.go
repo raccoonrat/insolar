@@ -98,13 +98,13 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 	case "GetNodeRef":
 		return m.getNodeRefCall(rootDomain, params)
 
-	case "CreateAccount`":
+	case "CreateAccount":
 		return m.createAccount(params)
-	case "GetAccountRef`":
+	case "GetAccountRef":
 		return m.getAccountRef()
 
 		// ethStore methods
-	case "SaveToMap`":
+	case "SaveToMap":
 		return m.CallEthStore(rootDomain, method, params, seed, sign)
 
 		// account methods
@@ -112,7 +112,7 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.CallAccount(rootDomain, method, params, seed, sign)
 
 	}
-	return nil, &foundation.Error{S: "Unknown method"}
+	return nil, &foundation.Error{S: "Unknown2 method2"}
 }
 
 func (m *Member) createMemberCall(ref core.RecordRef, params []byte) (interface{}, error) {

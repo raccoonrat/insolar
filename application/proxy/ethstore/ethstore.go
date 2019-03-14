@@ -33,7 +33,7 @@ type StoreElem struct {
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("111135KTSrUK6ff4JpEMWWn3Z4KL4Cr8u27GCQKDUgT.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("111133i6GM3M4TidWtrnSaZBW7DzCRfKZT9QRwbLY4v.11111111111111111111111111111111")
 
 // EthStore holds proxy type
 type EthStore struct {
