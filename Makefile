@@ -46,6 +46,10 @@ ci-lint:
 metalint:
 	gometalinter --vendor $(ALL_PACKAGES)
 
+.PHONY: metalint
+implint:
+	implint ledger
+
 .PHONY: clean
 clean:
 	go clean $(ALL_PACKAGES)
@@ -62,6 +66,7 @@ install-godep:
 install-build-tools:
 	go get -u golang.org/x/tools/cmd/stringer
 	./scripts/build/fetchdeps github.com/gojuno/minimock/cmd/minimock 890c67cef23dd06d694294d4f7b1026ed7bac8e6
+	./scripts/build/fetchdeps github.com/andreyromancev/implint/cmd/implint 4eac659f15c5e3a64404aa12bc1d9b5cb90557ac
 
 .PHONY: install-deps
 install-deps: install-godep install-build-tools
