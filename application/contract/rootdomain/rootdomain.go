@@ -30,6 +30,7 @@ import (
 type RootDomain struct {
 	foundation.BaseContract
 	RootMember    core.RecordRef
+	EthStore      core.RecordRef
 	NodeDomainRef core.RecordRef
 }
 
@@ -55,6 +56,11 @@ func (rd *RootDomain) CreateMember(name string, key string) (string, error) {
 // GetRootMemberRef returns root member's reference
 func (rd *RootDomain) GetRootMemberRef() (*core.RecordRef, error) {
 	return &rd.RootMember, nil
+}
+
+// GetEthStoreRef returns root member's reference
+func (rd *RootDomain) GetEthStoreRef() (*core.RecordRef, error) {
+	return &rd.EthStore, nil
 }
 
 func (rd *RootDomain) getUserInfoMap(m *member.Member) (map[string]interface{}, error) {
@@ -135,6 +141,7 @@ var INSATTR_Info_API = true
 func (rd *RootDomain) Info() (interface{}, error) {
 	res := map[string]interface{}{
 		"root_member": rd.RootMember.String(),
+		"eth_store":   rd.EthStore.String(),
 		"node_domain": rd.NodeDomainRef.String(),
 	}
 	resJSON, err := json.Marshal(res)

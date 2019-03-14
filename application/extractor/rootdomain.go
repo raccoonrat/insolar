@@ -28,6 +28,7 @@ import (
 type Info struct {
 	RootDomain string `json:"root_domain"`
 	RootMember string `json:"root_member"`
+	EthStore   string `json:"eth_store"`
 	NodeDomain string `json:"node_domain"`
 }
 

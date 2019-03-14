@@ -33,6 +33,7 @@ type GenesisDataProvider struct {
 
 	rootMemberRef *core.RecordRef
 	nodeDomainRef *core.RecordRef
+	ethStoreRef   *core.RecordRef
 	lock          sync.RWMutex
 }
 
@@ -51,11 +52,19 @@ func (gdp *GenesisDataProvider) setInfo(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "[ setInfo ] Can't extract response")
 	}
+
 	rootMemberRef, err := core.NewRefFromBase58(info.RootMember)
 	if err != nil {
 		return errors.Wrap(err, "[ setInfo ] Failed to parse info.RootMember")
 	}
 	gdp.rootMemberRef = rootMemberRef
+
+	ethStoreRef, err := core.NewRefFromBase58(info.EthStore)
+	if err != nil {
+		return errors.Wrap(err, "[ setInfo ] Failed to parse info.EthStore")
+	}
+	gdp.ethStoreRef = ethStoreRef
+
 	nodeDomainRef, err := core.NewRefFromBase58(info.NodeDomain)
 	if err != nil {
 		return errors.Wrap(err, "[ setInfo ] Failed to parse info.NodeDomain")
@@ -94,4 +103,17 @@ func (gdp *GenesisDataProvider) GetRootMember(ctx context.Context) (*core.Record
 		}
 	}
 	return gdp.rootMemberRef, nil
+}
+
+// GetEthStore returns reference to EthStore
+func (gdp *GenesisDataProvider) GetEthStore(ctx context.Context) (*core.RecordRef, error) {
+	gdp.lock.Lock()
+	defer gdp.lock.Unlock()
+	if gdp.ethStoreRef == nil {
+		err := gdp.setInfo(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "[ GenesisDataProvider::GetEthStore ] Can't get info")
+		}
+	}
+	return gdp.ethStoreRef, nil
 }

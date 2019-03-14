@@ -32,6 +32,7 @@ type InfoArgs struct{}
 type InfoReply struct {
 	RootDomain string
 	RootMember string
+	EthStore   string
 	NodeDomain string
 	TraceID    string
 }
@@ -61,6 +62,7 @@ func NewInfoService(runner *Runner) *InfoService {
 // 		"result": {
 // 			"RootDomain": str, // reference to RootDomain instance
 // 			"RootMember": str, // reference to RootMember instance
+// 			"EthStore": str, // reference to EthStore instance
 // 			"NodeDomain": str, // reference to NodeDomain instance
 // 			"TraceID": str // traceID for request
 // 		},
@@ -86,6 +88,15 @@ func (s *InfoService) Get(r *http.Request, args *InfoArgs, reply *InfoReply) err
 		inslog.Error("[ INFO ] rootMember ref is nil")
 		return errors.New("[ INFO ] rootMember ref is nil")
 	}
+	ethStore, err := s.runner.GenesisDataProvider.GetEthStore(ctx)
+	if err != nil {
+		inslog.Error(errors.Wrap(err, "[ INFO ] Can't get ethStore ref"))
+		return errors.Wrap(err, "[ INFO ] Can't get ethStore ref")
+	}
+	if ethStore == nil {
+		inslog.Error("[ INFO ] ethStore ref is nil")
+		return errors.New("[ INFO ] ethStore ref is nil")
+	}
 	nodeDomain, err := s.runner.GenesisDataProvider.GetNodeDomain(ctx)
 	if err != nil {
 		inslog.Error(errors.Wrap(err, "[ INFO ] Can't get nodeDomain ref"))
@@ -98,6 +109,7 @@ func (s *InfoService) Get(r *http.Request, args *InfoArgs, reply *InfoReply) err
 
 	reply.RootDomain = rootDomain.String()
 	reply.RootMember = rootMember.String()
+	reply.EthStore = ethStore.String()
 	reply.NodeDomain = nodeDomain.String()
 	reply.TraceID = utils.RandTraceID()
 

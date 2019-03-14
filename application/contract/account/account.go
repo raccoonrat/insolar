@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/insolar/insolar/application/proxy/account"
-	"github.com/insolar/insolar/application/proxy/member"
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/logicrunner/goplugin/foundation"
 )
@@ -37,22 +36,15 @@ var INSATTR_Call_API = true
 
 // Call method for authorized calls
 func (a *Account) Call(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
-	m, err := member.GetImplementationFrom(a.GetReference())
-	if err != nil {
-		return nil, fmt.Errorf("[ Call ] : %s", err.Error())
-	}
-	if err := m.VerifySig(method, params, seed, sign); err != nil {
-		return nil, fmt.Errorf("[ Call ]: %s", err.Error())
-	}
 
 	switch method {
-	case "getBalance":
+	case "GetBalance":
 		return a.getBalance()
-	case "transfer":
+	case "Transfer":
 		return a.transfer(params)
-	case "secretTransfer":
+	case "SecretTransfer":
 		return a.secretTransfer(params)
-	case "applySecret":
+	case "ApplySecret":
 		return a.applySecret(params)
 	}
 	return nil, &foundation.Error{S: "Unknown method"}

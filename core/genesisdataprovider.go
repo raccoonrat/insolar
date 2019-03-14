@@ -23,4 +23,5 @@ type GenesisDataProvider interface {
 	GetRootDomain(ctx context.Context) *RecordRef
 	GetNodeDomain(ctx context.Context) (*RecordRef, error)
 	GetRootMember(ctx context.Context) (*RecordRef, error)
+	GetEthStore(ctx context.Context) (*RecordRef, error)
 }

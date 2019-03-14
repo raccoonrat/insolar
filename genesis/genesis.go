@@ -72,6 +72,7 @@ type Genesis struct {
 	rootDomainRef   *core.RecordRef
 	nodeDomainRef   *core.RecordRef
 	rootMemberRef   *core.RecordRef
+	ethStoreRef     *core.RecordRef
 	prototypeRefs   map[string]*core.RecordRef
 	isGenesis       bool
 	config          *Config
@@ -224,7 +225,7 @@ func (g *Genesis) activateEthStore(
 	if err != nil {
 		return errors.Wrap(err, "[ activateEthStore ] couldn't create root member instance")
 	}
-	g.rootMemberRef = contract
+	g.ethStoreRef = contract
 	return nil
 }
 
@@ -272,7 +273,7 @@ func (g *Genesis) activateRootMember(
 func (g *Genesis) updateRootDomain(
 	ctx context.Context, domainDesc core.ObjectDescriptor,
 ) error {
-	updateData, err := serializeInstance(&rootdomain.RootDomain{RootMember: *g.rootMemberRef, NodeDomainRef: *g.nodeDomainRef})
+	updateData, err := serializeInstance(&rootdomain.RootDomain{RootMember: *g.rootMemberRef, EthStore: *g.ethStoreRef, NodeDomainRef: *g.nodeDomainRef})
 	if err != nil {
 		return errors.Wrap(err, "[ updateRootDomain ]")
 	}
@@ -334,7 +335,6 @@ func (g *Genesis) activateSmartContracts(
 	ctx context.Context, cb *ContractsBuilder, rootPubKey string, oraclePubKey string, rootDomainID *core.RecordID,
 ) ([]genesisNode, error) {
 
-	// todo pea: ethstore create
 	rootDomainDesc, err := g.activateRootDomain(ctx, cb, rootDomainID)
 	errMsg := "[ ActivateSmartContracts ]"
 	if err != nil {

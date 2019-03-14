@@ -19,6 +19,7 @@ package member
 import (
 	"fmt"
 	"github.com/insolar/insolar/application/proxy/account"
+	"github.com/insolar/insolar/application/proxy/ethstore"
 
 	"github.com/insolar/insolar/application/contract/member/signer"
 	"github.com/insolar/insolar/application/proxy/nodedomain"
@@ -81,6 +82,10 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 	switch method {
 	case "CreateMember":
 		return m.createMemberCall(rootDomain, params)
+
+		// ethStore methods
+	case "SaveToMap`":
+		return m.CallEthStore(rootDomain, method, params, seed, sign)
 	}
 
 	if err := m.VerifySig(method, params, seed, sign); err != nil {
@@ -88,12 +93,6 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 	}
 
 	switch method {
-	case "GetMyBalance":
-		return m.getMyBalanceCall()
-	case "GetBalance":
-		return m.getBalanceCall(params)
-	case "Transfer":
-		return m.transferCall(params)
 	case "DumpUserInfo":
 		return m.dumpUserInfoCall(rootDomain, params)
 	case "DumpAllUsers":
@@ -107,6 +106,11 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.createAccount(params)
 	case "GetAccountRef`":
 		return m.getAccountRef()
+
+		// account methods
+	case "GetBalance", "Transfer", "SecretTransfer", "ApplySecret":
+		return m.CallAccount(rootDomain, method, params, seed, sign)
+
 	}
 	return nil, &foundation.Error{S: "Unknown method"}
 }
@@ -244,4 +248,24 @@ func (m *Member) getAccountRef() (string, error) {
 	}
 
 	return a.GetReference().String(), nil
+}
+
+func (m *Member) CallEthStore(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
+
+	ethStore, err := ethstore.GetImplementationFrom(m.GetReference())
+	if err != nil {
+		return "", fmt.Errorf("[ CallEthStore ] Can't get implementation: %s", err.Error())
+	}
+
+	return ethStore.Call(rootDomain, method, params, seed, sign)
+}
+
+func (m *Member) CallAccount(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
+
+	account, err := account.GetImplementationFrom(m.GetReference())
+	if err != nil {
+		return "", fmt.Errorf("[ CallAccount ] Can't get implementation: %s", err.Error())
+	}
+
+	return account.Call(rootDomain, method, params, seed, sign)
 }
