@@ -27,7 +27,6 @@ import (
 // EthStore
 type EthStore struct {
 	foundation.BaseContract
-	PublicKey  string
 	EthAddrMap map[string]StoreElem
 }
 
@@ -41,49 +40,16 @@ type StoreElem struct {
 }
 
 // New creates EthStore
-func New(publicKey string) (*EthStore, error) {
+func New() (*EthStore, error) {
 	return &EthStore{
-		PublicKey:  publicKey,
 		EthAddrMap: make(map[string]StoreElem),
 	}, nil
-}
-
-var INSATTR_GetPublicKey_API = true
-
-func (ethStore *EthStore) GetPublicKey() (string, error) {
-	return ethStore.PublicKey, nil
-}
-
-func (ethStore *EthStore) verifySig(method string, params []byte, seed []byte, sign []byte) error {
-	args, err := core.MarshalArgs(method, params, seed)
-	if err != nil {
-		return fmt.Errorf("[ verifySig ] Can't MarshalArgs: %s", err.Error())
-	}
-	key, err := ethStore.GetPublicKey()
-	if err != nil {
-		return fmt.Errorf("[ verifySig ]: %s", err.Error())
-	}
-
-	publicKey, err := foundation.ImportPublicKey(key)
-	if err != nil {
-		return fmt.Errorf("[ verifySig ] Invalid public key")
-	}
-
-	verified := foundation.Verify(args, sign, publicKey)
-	if !verified {
-		return fmt.Errorf("[ verifySig ] Incorrect signature")
-	}
-	return nil
 }
 
 var INSATTR_Call_API = true
 
 // Call method for authorized calls
 func (ethStore *EthStore) Call(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
-
-	if err := ethStore.verifySig(method, params, seed, sign); err != nil {
-		return nil, fmt.Errorf("[ Call ]: %s", err.Error())
-	}
 
 	switch method {
 	case "SaveToMap":

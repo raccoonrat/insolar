@@ -26,10 +26,10 @@ import (
 
 // InfoResponse represents response from Info() method of RootDomain contract
 type Info struct {
-	RootDomain string `json:"root_domain"`
-	RootMember string `json:"root_member"`
-	EthStore   string `json:"eth_store"`
-	NodeDomain string `json:"node_domain"`
+	RootDomain   string `json:"root_domain"`
+	RootMember   string `json:"root_member"`
+	OracleMember string `json:"oracle_member"`
+	NodeDomain   string `json:"node_domain"`
 }
 
 // InfoResponse returns response from Info() method of RootDomain contract

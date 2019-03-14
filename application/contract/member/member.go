@@ -82,10 +82,6 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 	switch method {
 	case "CreateMember":
 		return m.createMemberCall(rootDomain, params)
-
-		// ethStore methods
-	case "SaveToMap`":
-		return m.CallEthStore(rootDomain, method, params, seed, sign)
 	}
 
 	if err := m.VerifySig(method, params, seed, sign); err != nil {
@@ -106,6 +102,10 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.createAccount(params)
 	case "GetAccountRef`":
 		return m.getAccountRef()
+
+		// ethStore methods
+	case "SaveToMap`":
+		return m.CallEthStore(rootDomain, method, params, seed, sign)
 
 		// account methods
 	case "GetBalance", "Transfer", "SecretTransfer", "ApplySecret":

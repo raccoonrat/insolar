@@ -33,7 +33,7 @@ type StoreElem struct {
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("1111WFNCoYYivne1SUxZyDf72u27rWEdP3f162cXj3.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("111135KTSrUK6ff4JpEMWWn3Z4KL4Cr8u27GCQKDUgT.11111111111111111111111111111111")
 
 // EthStore holds proxy type
 type EthStore struct {
@@ -86,9 +86,8 @@ func GetImplementationFrom(object core.RecordRef) (*EthStore, error) {
 }
 
 // New is constructor
-func New(publicKey string) *ContractConstructorHolder {
-	var args [1]interface{}
-	args[0] = publicKey
+func New() *ContractConstructorHolder {
+	var args [0]interface{}
 
 	var argsSerialized []byte
 	err := proxyctx.Current.Serialize(args, &argsSerialized)
@@ -161,58 +160,6 @@ func (r *EthStore) GetCode() (core.RecordRef, error) {
 	}
 
 	return r.Code, nil
-}
-
-// GetPublicKey is proxy generated method
-func (r *EthStore) GetPublicKey() (string, error) {
-	var args [0]interface{}
-
-	var argsSerialized []byte
-
-	ret := [2]interface{}{}
-	var ret0 string
-	ret[0] = &ret0
-	var ret1 *foundation.Error
-	ret[1] = &ret1
-
-	err := proxyctx.Current.Serialize(args, &argsSerialized)
-	if err != nil {
-		return ret0, err
-	}
-
-	res, err := proxyctx.Current.RouteCall(r.Reference, true, "GetPublicKey", argsSerialized, *PrototypeReference)
-	if err != nil {
-		return ret0, err
-	}
-
-	err = proxyctx.Current.Deserialize(res, &ret)
-	if err != nil {
-		return ret0, err
-	}
-
-	if ret1 != nil {
-		return ret0, ret1
-	}
-	return ret0, nil
-}
-
-// GetPublicKeyNoWait is proxy generated method
-func (r *EthStore) GetPublicKeyNoWait() error {
-	var args [0]interface{}
-
-	var argsSerialized []byte
-
-	err := proxyctx.Current.Serialize(args, &argsSerialized)
-	if err != nil {
-		return err
-	}
-
-	_, err = proxyctx.Current.RouteCall(r.Reference, false, "GetPublicKey", argsSerialized, *PrototypeReference)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Call is proxy generated method

@@ -30,7 +30,7 @@ import (
 type RootDomain struct {
 	foundation.BaseContract
 	RootMember    core.RecordRef
-	EthStore      core.RecordRef
+	OracleMember  core.RecordRef
 	NodeDomainRef core.RecordRef
 }
 
@@ -58,9 +58,9 @@ func (rd *RootDomain) GetRootMemberRef() (*core.RecordRef, error) {
 	return &rd.RootMember, nil
 }
 
-// GetEthStoreRef returns root member's reference
-func (rd *RootDomain) GetEthStoreRef() (*core.RecordRef, error) {
-	return &rd.EthStore, nil
+// GetOracleMemberRef returns root member's reference
+func (rd *RootDomain) GetOracleMemberRef() (*core.RecordRef, error) {
+	return &rd.OracleMember, nil
 }
 
 func (rd *RootDomain) getUserInfoMap(m *member.Member) (map[string]interface{}, error) {
@@ -140,9 +140,9 @@ var INSATTR_Info_API = true
 // Info returns information about basic objects
 func (rd *RootDomain) Info() (interface{}, error) {
 	res := map[string]interface{}{
-		"root_member": rd.RootMember.String(),
-		"eth_store":   rd.EthStore.String(),
-		"node_domain": rd.NodeDomainRef.String(),
+		"root_member":   rd.RootMember.String(),
+		"oracle_member": rd.OracleMember.String(),
+		"node_domain":   rd.NodeDomainRef.String(),
 	}
 	resJSON, err := json.Marshal(res)
 	if err != nil {

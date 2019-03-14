@@ -30,11 +30,11 @@ type InfoArgs struct{}
 
 // InfoReply is reply for Info service requests.
 type InfoReply struct {
-	RootDomain string
-	RootMember string
-	EthStore   string
-	NodeDomain string
-	TraceID    string
+	RootDomain   string
+	RootMember   string
+	OracleMember string
+	NodeDomain   string
+	TraceID      string
 }
 
 // InfoService is a service that provides API for getting info about genesis objects.
@@ -88,14 +88,14 @@ func (s *InfoService) Get(r *http.Request, args *InfoArgs, reply *InfoReply) err
 		inslog.Error("[ INFO ] rootMember ref is nil")
 		return errors.New("[ INFO ] rootMember ref is nil")
 	}
-	ethStore, err := s.runner.GenesisDataProvider.GetEthStore(ctx)
+	oracleMember, err := s.runner.GenesisDataProvider.GetOracleMember(ctx)
 	if err != nil {
-		inslog.Error(errors.Wrap(err, "[ INFO ] Can't get ethStore ref"))
-		return errors.Wrap(err, "[ INFO ] Can't get ethStore ref")
+		inslog.Error(errors.Wrap(err, "[ INFO ] Can't get oracleMember ref"))
+		return errors.Wrap(err, "[ INFO ] Can't get oracleMember ref")
 	}
-	if ethStore == nil {
-		inslog.Error("[ INFO ] ethStore ref is nil")
-		return errors.New("[ INFO ] ethStore ref is nil")
+	if oracleMember == nil {
+		inslog.Error("[ INFO ] oracleMember ref is nil")
+		return errors.New("[ INFO ] oracleMember ref is nil")
 	}
 	nodeDomain, err := s.runner.GenesisDataProvider.GetNodeDomain(ctx)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *InfoService) Get(r *http.Request, args *InfoArgs, reply *InfoReply) err
 
 	reply.RootDomain = rootDomain.String()
 	reply.RootMember = rootMember.String()
-	reply.EthStore = ethStore.String()
+	reply.OracleMember = oracleMember.String()
 	reply.NodeDomain = nodeDomain.String()
 	reply.TraceID = utils.RandTraceID()
 

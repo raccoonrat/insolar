@@ -24,7 +24,7 @@ import (
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("11112V3qgdUfjkgu972zApDRPc6G2eAGSzKdcprYVxm.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("11112SfnVNLPwYMkvvdjwnue6ytxKEcSMQjCE2ATm1T.11111111111111111111111111111111")
 
 // Account holds proxy type
 type Account struct {

@@ -31,10 +31,10 @@ type GenesisDataProvider struct {
 	CertificateManager core.CertificateManager `inject:""`
 	ContractRequester  core.ContractRequester  `inject:""`
 
-	rootMemberRef *core.RecordRef
-	nodeDomainRef *core.RecordRef
-	ethStoreRef   *core.RecordRef
-	lock          sync.RWMutex
+	rootMemberRef   *core.RecordRef
+	oracleMemberRef *core.RecordRef
+	nodeDomainRef   *core.RecordRef
+	lock            sync.RWMutex
 }
 
 // New creates new GenesisDataProvider
@@ -59,11 +59,11 @@ func (gdp *GenesisDataProvider) setInfo(ctx context.Context) error {
 	}
 	gdp.rootMemberRef = rootMemberRef
 
-	ethStoreRef, err := core.NewRefFromBase58(info.EthStore)
+	oracleMemberRef, err := core.NewRefFromBase58(info.OracleMember)
 	if err != nil {
-		return errors.Wrap(err, "[ setInfo ] Failed to parse info.EthStore")
+		return errors.Wrap(err, "[ setInfo ] Failed to parse info.OracleMember")
 	}
-	gdp.ethStoreRef = ethStoreRef
+	gdp.oracleMemberRef = oracleMemberRef
 
 	nodeDomainRef, err := core.NewRefFromBase58(info.NodeDomain)
 	if err != nil {
@@ -105,15 +105,15 @@ func (gdp *GenesisDataProvider) GetRootMember(ctx context.Context) (*core.Record
 	return gdp.rootMemberRef, nil
 }
 
-// GetEthStore returns reference to EthStore
-func (gdp *GenesisDataProvider) GetEthStore(ctx context.Context) (*core.RecordRef, error) {
+// GetOracleMember returns reference to OracleMember
+func (gdp *GenesisDataProvider) GetOracleMember(ctx context.Context) (*core.RecordRef, error) {
 	gdp.lock.Lock()
 	defer gdp.lock.Unlock()
-	if gdp.ethStoreRef == nil {
+	if gdp.oracleMemberRef == nil {
 		err := gdp.setInfo(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "[ GenesisDataProvider::GetEthStore ] Can't get info")
+			return nil, errors.Wrap(err, "[ GenesisDataProvider::GetOracleMember ] Can't get info")
 		}
 	}
-	return gdp.ethStoreRef, nil
+	return gdp.oracleMemberRef, nil
 }
