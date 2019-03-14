@@ -21,18 +21,18 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
-	"github.com/insolar/insolar/application/contract/ethstore"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
 
+	"github.com/insolar/insolar/application/contract/account"
+	"github.com/insolar/insolar/application/contract/ethstore"
 	"github.com/insolar/insolar/application/contract/member"
 	"github.com/insolar/insolar/application/contract/nodedomain"
 	"github.com/insolar/insolar/application/contract/noderecord"
 	"github.com/insolar/insolar/application/contract/rootdomain"
-	"github.com/insolar/insolar/application/contract/wallet"
 	"github.com/insolar/insolar/certificate"
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/core/message"
@@ -295,7 +295,7 @@ func (g *Genesis) activateEthStore(
 		*contract,
 		*g.oracleMemberRef,
 		*cb.Prototypes[ethstoreContract],
-		false,
+		true,
 		instanceData,
 	)
 	if err != nil {
@@ -331,24 +331,21 @@ func (g *Genesis) updateRootDomain(
 	return nil
 }
 
-func (g *Genesis) activateRootMemberWallet(
+func (g *Genesis) activateRootMemberAccount(
 	ctx context.Context, domain *core.RecordID, cb *ContractsBuilder,
 ) error {
 
-	w, err := wallet.New(g.config.RootBalance)
-	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootWallet ]")
-	}
+	a := account.Account{Balance: g.config.RootBalance, SecretMap: map[string]uint{}}
 
-	instanceData, err := serializeInstance(w)
+	instanceData, err := serializeInstance(a)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootWallet ]")
+		return errors.Wrap(err, "[ activateRootMemberAccount ]")
 	}
 
 	contractID, err := g.ArtifactManager.RegisterRequest(ctx, *g.rootDomainRef, &message.Parcel{Msg: &message.GenesisRequest{Name: "RootWallet"}})
 
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootWallet ] couldn't create root wallet")
+		return errors.Wrap(err, "[ activateRootMemberAccount ] couldn't create root wallet")
 	}
 	contract := core.NewRecordRef(*domain, *contractID)
 	_, err = g.ArtifactManager.ActivateObject(
@@ -356,16 +353,16 @@ func (g *Genesis) activateRootMemberWallet(
 		core.RecordRef{},
 		*contract,
 		*g.rootMemberRef,
-		*cb.Prototypes[walletContract],
+		*cb.Prototypes[accountContract],
 		true,
 		instanceData,
 	)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootWallet ] couldn't create root wallet")
+		return errors.Wrap(err, "[ activateRootMemberAccount ] couldn't create root wallet")
 	}
 	_, err = g.ArtifactManager.RegisterResult(ctx, *g.rootDomainRef, *contract, nil)
 	if err != nil {
-		return errors.Wrap(err, "[ ActivateRootWallet ] couldn't create root wallet")
+		return errors.Wrap(err, "[ activateRootMemberAccount ] couldn't create root wallet")
 	}
 
 	return nil
@@ -397,7 +394,7 @@ func (g *Genesis) activateSmartContracts(
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
-	err = g.activateRootMemberWallet(ctx, rootDomainID, cb)
+	err = g.activateRootMemberAccount(ctx, rootDomainID, cb)
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}

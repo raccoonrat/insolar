@@ -112,7 +112,7 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 		return m.CallAccount(rootDomain, method, params, seed, sign)
 
 	}
-	return nil, &foundation.Error{S: "Unknown2 method2"}
+	return nil, &foundation.Error{S: "[ Member Call ] Unknown method"}
 }
 
 func (m *Member) createMemberCall(ref core.RecordRef, params []byte) (interface{}, error) {

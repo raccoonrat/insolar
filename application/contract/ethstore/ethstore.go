@@ -56,7 +56,7 @@ func (ethStore *EthStore) Call(rootDomain core.RecordRef, method string, params 
 		return ethStore.saveToMap(params)
 	}
 
-	return nil, &foundation.Error{S: "Unknown1 method1"}
+	return nil, &foundation.Error{S: "[ EthStore Call ] Unknown method"}
 }
 
 // SaveToMap create new key with value in map
