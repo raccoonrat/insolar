@@ -17,11 +17,15 @@
 package rootdomain
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/crypto/sha3"
+
+	"github.com/insolar/insolar/application/proxy/account"
+	"github.com/insolar/insolar/application/proxy/ethstore"
 	"github.com/insolar/insolar/application/proxy/member"
-	"github.com/insolar/insolar/application/proxy/wallet"
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/logicrunner/goplugin/foundation"
 )
@@ -36,6 +40,27 @@ type RootDomain struct {
 
 var INSATTR_CreateMember_API = true
 
+func decodeHex(s string) []byte {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return b
+}
+
+func hash(msg string) string {
+
+	hash := sha3.NewKeccak256()
+
+	var buf []byte
+	//hash.Write([]byte{0xcc})
+	hash.Write(decodeHex(msg))
+	buf = hash.Sum(nil)
+
+	return hex.EncodeToString(buf)
+}
+
 // CreateMember processes create member request
 func (rd *RootDomain) CreateMember(name string, key string) (string, error) {
 	memberHolder := member.New(name, key)
@@ -43,9 +68,18 @@ func (rd *RootDomain) CreateMember(name string, key string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("[ CreateMember ] Can't save as child: %s", err.Error())
 	}
+	ethAddr := hash(key)
 
-	wHolder := wallet.New(1000 * 1000 * 1000)
-	_, err = wHolder.AsDelegate(m.GetReference())
+	ethStore, err := ethstore.GetImplementationFrom(rd.GetReference())
+	if err != nil {
+		return "", fmt.Errorf("[ CreateMember ] Can't get implementation: %s", err.Error())
+	}
+
+	// добавляем в мапу информацию о аккаунте
+	ethStore.VerifyEthBalance()
+
+	aHolder := account.New(ethAddr, 0)
+	_, err = aHolder.AsDelegate(m.GetReference())
 	if err != nil {
 		return "", fmt.Errorf("[ CreateMember ] Can't save as delegate: %s", err.Error())
 	}
@@ -64,7 +98,7 @@ func (rd *RootDomain) GetOracleMemberRef() (*core.RecordRef, error) {
 }
 
 func (rd *RootDomain) getUserInfoMap(m *member.Member) (map[string]interface{}, error) {
-	w, err := wallet.GetImplementationFrom(m.GetReference())
+	a, err := account.GetImplementationFrom(m.GetReference())
 	if err != nil {
 		return nil, fmt.Errorf("[ getUserInfoMap ] Can't get implementation: %s", err.Error())
 	}
@@ -74,13 +108,13 @@ func (rd *RootDomain) getUserInfoMap(m *member.Member) (map[string]interface{}, 
 		return nil, fmt.Errorf("[ getUserInfoMap ] Can't get name: %s", err.Error())
 	}
 
-	balance, err := w.GetBalance()
+	balance, err := a.GetBalance()
 	if err != nil {
 		return nil, fmt.Errorf("[ getUserInfoMap ] Can't get total balance: %s", err.Error())
 	}
 	return map[string]interface{}{
-		"member": name,
-		"wallet": balance,
+		"member":  name,
+		"balance": balance,
 	}, nil
 }
 

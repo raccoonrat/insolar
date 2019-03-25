@@ -24,7 +24,7 @@ import (
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("11112SfnVNLPwYMkvvdjwnue6ytxKEcSMQjCE2ATm1T.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("1111Lc2YTL3Wc1KJncw9yq645KhhYqYuFontL81WV9.11111111111111111111111111111111")
 
 // Account holds proxy type
 type Account struct {
@@ -77,9 +77,10 @@ func GetImplementationFrom(object core.RecordRef) (*Account, error) {
 }
 
 // New is constructor
-func New(accountJson []byte) *ContractConstructorHolder {
-	var args [1]interface{}
-	args[0] = accountJson
+func New(ethHash string, balance uint) *ContractConstructorHolder {
+	var args [2]interface{}
+	args[0] = ethHash
+	args[1] = balance
 
 	var argsSerialized []byte
 	err := proxyctx.Current.Serialize(args, &argsSerialized)
@@ -319,6 +320,58 @@ func (r *Account) ReceiveSecretTransferNoWait(amount uint, secret string) error 
 	}
 
 	_, err = proxyctx.Current.RouteCall(r.Reference, false, "ReceiveSecretTransfer", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetBalance is proxy generated method
+func (r *Account) GetBalance() (uint, error) {
+	var args [0]interface{}
+
+	var argsSerialized []byte
+
+	ret := [2]interface{}{}
+	var ret0 uint
+	ret[0] = &ret0
+	var ret1 *foundation.Error
+	ret[1] = &ret1
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return ret0, err
+	}
+
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "GetBalance", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return ret0, err
+	}
+
+	err = proxyctx.Current.Deserialize(res, &ret)
+	if err != nil {
+		return ret0, err
+	}
+
+	if ret1 != nil {
+		return ret0, ret1
+	}
+	return ret0, nil
+}
+
+// GetBalanceNoWait is proxy generated method
+func (r *Account) GetBalanceNoWait() error {
+	var args [0]interface{}
+
+	var argsSerialized []byte
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "GetBalance", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}

@@ -62,25 +62,33 @@ func (ethStore *EthStore) Call(rootDomain core.RecordRef, method string, params 
 // SaveToMap create new key with value in map
 func (ethStore *EthStore) saveToMap(params []byte) (interface{}, error) {
 
-	var ethAddr, balanceStr, ethTxHash string
-	if err := signer.UnmarshalParams(params, &ethAddr, &balanceStr, &ethTxHash); err != nil {
+	type inputRequest struct {
+		EthAddr    string `ethAddr`
+		BalanceStr string `balanceStr`
+		EthTxHash  string `ethTxHash`
+	}
+
+	inputJSON := new(inputRequest)
+
+	if err := signer.UnmarshalParams(params, &inputJSON); err != nil {
 		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
 	}
 
-	balance, err := strconv.Atoi(balanceStr)
+	balance, err := strconv.Atoi(inputJSON.BalanceStr)
 	if err != nil {
 		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
 	}
 
-	if _, ok := ethStore.EthAddrMap[ethAddr]; ok {
+	if _, ok := ethStore.EthAddrMap[inputJSON.EthAddr]; ok {
 		return nil, fmt.Errorf("[ saveToMap ]: element is already exist")
 	}
+	// проверить есть ли такой мембер
 
-	ethStore.EthAddrMap[ethAddr] =
+	ethStore.EthAddrMap[inputJSON.EthAddr] =
 		StoreElem{
-			EthAddr:   ethAddr,
+			EthAddr:   inputJSON.EthAddr,
 			Balance:   uint(balance),
-			EthTxHash: ethTxHash,
+			EthTxHash: inputJSON.EthTxHash,
 			Marker:    false,
 		}
 
@@ -88,12 +96,7 @@ func (ethStore *EthStore) saveToMap(params []byte) (interface{}, error) {
 }
 
 // VerifyEthBalance activate Eth balance
-func (ethStore *EthStore) VerifyEthBalance(params []byte) (uint, error) {
-
-	var ethAddr, accountRefStr string
-	if err := signer.UnmarshalParams(params, &ethAddr, &accountRefStr); err != nil {
-		return 0, fmt.Errorf("[ VerifyEthBalance ]: %s", err.Error())
-	}
+func (ethStore *EthStore) VerifyEthBalance(ethAddr string, accountRefStr string) (uint, error) {
 
 	accountRef, err := core.NewRefFromBase58(accountRefStr)
 	if err != nil {

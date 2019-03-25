@@ -33,7 +33,7 @@ type StoreElem struct {
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("111133i6GM3M4TidWtrnSaZBW7DzCRfKZT9QRwbLY4v.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("111131jQb3Sc4ZeeyQzDBqqX9jCYr1YKByze7mLjUce.11111111111111111111111111111111")
 
 // EthStore holds proxy type
 type EthStore struct {
@@ -225,9 +225,10 @@ func (r *EthStore) CallNoWait(rootDomain core.RecordRef, method string, params [
 }
 
 // VerifyEthBalance is proxy generated method
-func (r *EthStore) VerifyEthBalance(params []byte) (uint, error) {
-	var args [1]interface{}
-	args[0] = params
+func (r *EthStore) VerifyEthBalance(ethAddr string, accountRefStr string) (uint, error) {
+	var args [2]interface{}
+	args[0] = ethAddr
+	args[1] = accountRefStr
 
 	var argsSerialized []byte
 
@@ -259,9 +260,10 @@ func (r *EthStore) VerifyEthBalance(params []byte) (uint, error) {
 }
 
 // VerifyEthBalanceNoWait is proxy generated method
-func (r *EthStore) VerifyEthBalanceNoWait(params []byte) error {
-	var args [1]interface{}
-	args[0] = params
+func (r *EthStore) VerifyEthBalanceNoWait(ethAddr string, accountRefStr string) error {
+	var args [2]interface{}
+	args[0] = ethAddr
+	args[1] = accountRefStr
 
 	var argsSerialized []byte
 

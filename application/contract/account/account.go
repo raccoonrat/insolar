@@ -39,7 +39,7 @@ func (a *Account) Call(rootDomain core.RecordRef, method string, params []byte, 
 
 	switch method {
 	case "GetBalance":
-		return a.getBalance()
+		return a.GetBalance()
 	case "Transfer":
 		return a.transfer(params)
 	case "SecretTransfer":
@@ -50,12 +50,22 @@ func (a *Account) Call(rootDomain core.RecordRef, method string, params []byte, 
 	return nil, &foundation.Error{S: "Unknown method"}
 }
 
+//
+//// New creates new account
+//func New(accountJson []byte) (account *Account, err error) {
+//	if err = json.Unmarshal(accountJson, account); err != nil {
+//		return nil, fmt.Errorf("[ New ] Can't Unmarshal account: %s", err.Error())
+//	}
+//	return
+//}
+
 // New creates new account
-func New(accountJson []byte) (account *Account, err error) {
-	if err = json.Unmarshal(accountJson, account); err != nil {
-		return nil, fmt.Errorf("[ New ] Can't Unmarshal account: %s", err.Error())
-	}
-	return
+func New(ethHash string, balance uint) (account *Account, err error) {
+	return &Account{
+			EthHash: ethHash,
+			Balance: balance,
+		},
+		nil
 }
 
 func (a *Account) ReceiveTransfer(amount uint) (interface{}, error) {
@@ -70,7 +80,7 @@ func (a *Account) ReceiveSecretTransfer(amount uint, secret string) (interface{}
 	return nil, nil
 }
 
-func (a *Account) getBalance() (uint, error) {
+func (a *Account) GetBalance() (uint, error) {
 	return a.Balance, nil
 }
 

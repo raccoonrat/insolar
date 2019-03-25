@@ -104,6 +104,14 @@
   revision = "2de33835d10275975374b37b2dcfd22c9020a1f5"
 
 [[projects]]
+  digest = "1:62616ec4cdabd7bf09fb6ca7df32073965ac74dad578ab76f180920426755d88"
+  name = "github.com/ethereum/go-ethereum"
+  packages = ["crypto/sha3"]
+  pruneopts = "UT"
+  revision = "24d727b6d6e2c0cde222fa12155c4a6db5caaf2e"
+  version = "v1.8.20"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -616,6 +624,7 @@
     "github.com/blang/semver",
     "github.com/ccding/go-stun/stun",
     "github.com/dgraph-io/badger",
+    "github.com/ethereum/go-ethereum/crypto/sha3",
     "github.com/gojuno/minimock",
     "github.com/gorilla/rpc/v2",
     "github.com/gorilla/rpc/v2/json2",
