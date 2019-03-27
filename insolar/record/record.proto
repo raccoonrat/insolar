@@ -3,10 +3,11 @@ syntax = "proto3";
 package record;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-option (gogoproto.goproto_getters_all) = false;
-option (gogoproto.populate_all)        = false;
+// option (gogoproto.goproto_getters_all) = false;
+// option (gogoproto.populate_all)        = false;
 
 message GenesisRecord {
+    option (gogoproto.face) = true;
 }
 
 message ChildRecord {
@@ -16,6 +17,7 @@ message ChildRecord {
 }
 
 message JetRecord {
+    option (gogoproto.face) = true;
     // TODO
 }
 

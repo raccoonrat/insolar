@@ -19,19 +19,10 @@ package record
 
 import (
 	"io"
-	"reflect"
 
 	"github.com/insolar/insolar/insolar"
-
-	"github.com/pkg/errors"
 )
 
-type SerializableRecord interface {
-	MarshalRecord() ([]byte, error)
-}
-
-// VirtualRecord is base interface for all records.
-// TODO: when migrating to protobuf - embed SerializableRecord into VirtualRecord
 type VirtualRecord interface {
 	// WriteHashData writes record data to provided writer. This data is used to calculate record's hash.
 	WriteHashData(w io.Writer) (int, error)
@@ -43,6 +34,13 @@ type MaterialRecord struct {
 	JetID insolar.JetID
 }
 
+/*
+type SerializableRecord interface {
+	MarshalRecord() ([]byte, error)
+}
+
+// VirtualRecord is base interface for all records.
+// TODO: when migrating to protobuf - embed SerializableRecord into VirtualRecord
 func (m *GenesisRecord) MarshalRecord() ([]byte, error) {
 	base := Record{}
 	base.Union = &Record_Genesis{m}
@@ -173,7 +171,7 @@ func (m *ObjectDeactivateRecord) WriteHashData(w io.Writer) (int, error) {
 	return w.Write(bytes)
 }
 
-// Returns any sub-record type or error
+// Returns pointer to any sub-record type or error
 func UnmarshalRecord(data []byte) (interface{}, error) {
 	base := Record{}
 
@@ -189,6 +187,7 @@ func UnmarshalRecord(data []byte) (interface{}, error) {
 	// using reflection to get real value, instead of oneOf wrapper,
 	// needed to implement oneOf logic. Can be written using big switch:case,
 	// but it'll be uglier (i guess)
-	field := reflect.ValueOf(union).Field(1).Interface()
+	field := reflect.ValueOf(union).Elem().Field(0).Interface()
 	return field, nil
 }
+*/
