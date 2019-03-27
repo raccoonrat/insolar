@@ -18,15 +18,17 @@ package artifactmanager
 
 import (
 	"context"
+	"strconv"
 	"sync"
+
+	"github.com/pkg/errors"
+	"go.opencensus.io/stats"
 
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/core/message"
 	"github.com/insolar/insolar/core/reply"
 	"github.com/insolar/insolar/instrumentation/inslogger"
 	"github.com/insolar/insolar/ledger/storage"
-	"github.com/pkg/errors"
-	"go.opencensus.io/stats"
 )
 
 // ledgerArtifactSenders is a some kind of a middleware layer
@@ -125,8 +127,19 @@ func retryJetSender(pulseNumber core.PulseNumber, jetStorage storage.JetStorage)
 				}
 
 				if r, ok := rep.(*reply.JetMiss); ok {
+					inslogger.FromContext(ctx).Debug(
+						"jet miss for message ", msg.Type().String(),
+						" to ", msg.DefaultTarget().String(),
+						", suggested jet ", r.JetID.DebugString(),
+					)
 					jetStorage.UpdateJetTree(ctx, pulseNumber, true, r.JetID)
 				} else {
+					if retries != jetMissRetryCount {
+						inslogger.FromContext(ctx).Debug(
+							strconv.Itoa(jetMissRetryCount - retries), " jet miss tries for message ", msg.Type().String(),
+							" to ", msg.DefaultTarget().String(),
+						)
+					}
 					return rep, err
 				}
 
